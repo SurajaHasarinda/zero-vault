@@ -1,7 +1,6 @@
 import React, { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-    Shield,
     KeyRound,
     Settings,
     LogOut,
@@ -43,8 +42,8 @@ const Layout = ({ children }: LayoutProps) => {
             {/* Brand */}
             <div className="p-5 border-b border-[#1e1e1e]">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-neon-green/10 flex items-center justify-center border border-neon-green/20 animate-pulse-glow">
-                        <Shield size={20} className="text-neon-green" />
+                    <div className="flex items-center justify-center">
+                        <img src="/zero-vault.svg" alt="Vault Zero Logo" className="w-8 h-8 object-contain" />
                     </div>
                     <div>
                         <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
@@ -174,7 +173,9 @@ const Layout = ({ children }: LayoutProps) => {
                             <Menu size={22} />
                         </button>
                         <div className="flex items-center gap-2">
-                            <Shield size={18} className="text-neon-green" />
+                            <div className="flex items-center justify-center">
+                                <img src="/zero-vault.svg" alt="Vault Zero Logo" className="w-6 h-6 object-contain" />
+                            </div>
                             <span className="font-bold text-white text-base">Vault Zero</span>
                         </div>
                     </div>

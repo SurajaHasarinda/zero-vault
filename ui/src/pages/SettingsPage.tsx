@@ -8,7 +8,6 @@ import {
     User,
     Settings,
     Lock,
-    Shield,
     Fingerprint,
 } from 'lucide-react';
 import { api } from '../api';
@@ -262,7 +261,7 @@ const SettingsPage: React.FC = () => {
                         disabled={unLoading}
                         className="w-full md:w-auto px-5 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
                     >
-                        {unLoading ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
+                        {unLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                         {unLoading ? 'Saving...' : 'Change Username'}
                     </button>
                 </form>

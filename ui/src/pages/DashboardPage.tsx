@@ -20,6 +20,7 @@ import {
     Zap,
     Database,
     ChevronRight,
+    Pencil,
 } from 'lucide-react';
 import { api, SecretEntry } from '../api';
 import { useCryptoKey } from '../context/CryptoContext';
@@ -49,6 +50,7 @@ const DashboardPage: React.FC = () => {
     const [editTitle, setEditTitle] = useState('');
     const [editContent, setEditContent] = useState('');
     const [saving, setSaving] = useState(false);
+    const [editingSecret, setEditingSecret] = useState<DecryptedSecret | null>(null); // non-null = edit mode
 
     // Delete confirmation
     const [deleteTarget, setDeleteTarget] = useState<DecryptedSecret | null>(null);
@@ -142,6 +144,36 @@ const DashboardPage: React.FC = () => {
         }
     };
 
+    // ─── Open edit modal ──────────────────────────────────────────────────
+
+    const openEditModal = async (secret: DecryptedSecret) => {
+        if (!encryptionKey) return;
+
+        let plaintext = secret.plaintext;
+
+        // Decrypt first if needed
+        if (plaintext === null) {
+            try {
+                plaintext = await decryptText(secret.encrypted_blob, encryptionKey);
+                setSecrets((prev) =>
+                    prev.map((s) =>
+                        s.id === secret.id
+                            ? { ...s, plaintext, isDecrypting: false }
+                            : s
+                    )
+                );
+            } catch {
+                showSnackbar('Failed to decrypt for editing.', 'error');
+                return;
+            }
+        }
+
+        setEditingSecret(secret);
+        setEditTitle(secret.title);
+        setEditContent(plaintext);
+        setShowAddModal(true);
+    };
+
     // ─── Save secret ─────────────────────────────────────────────────────
 
     const handleSave = async () => {
@@ -152,12 +184,15 @@ const DashboardPage: React.FC = () => {
             const blob = await encryptText(editContent, encryptionKey);
             await api.upsertSecret(editTitle.trim(), blob);
             showSnackbar(
-                `Secret "${editTitle.trim()}" encrypted & stored`,
+                editingSecret
+                    ? `Secret "${editTitle.trim()}" updated`
+                    : `Secret "${editTitle.trim()}" encrypted & stored`,
                 'success'
             );
             setShowAddModal(false);
             setEditTitle('');
             setEditContent('');
+            setEditingSecret(null);
             loadSecrets();
         } catch (err: any) {
             showSnackbar(
@@ -167,6 +202,13 @@ const DashboardPage: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const closeModal = () => {
+        setShowAddModal(false);
+        setEditTitle('');
+        setEditContent('');
+        setEditingSecret(null);
     };
 
     // ─── Delete secret ───────────────────────────────────────────────────
@@ -340,8 +382,8 @@ const DashboardPage: React.FC = () => {
                                                     toggleDecrypt(secret);
                                                 }}
                                                 className={`p-1.5 rounded-md transition-all duration-300 ${secret.plaintext !== null
-                                                        ? 'text-neon-green bg-neon-green/10 hover:bg-neon-green/20'
-                                                        : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5'
+                                                    ? 'text-neon-green bg-neon-green/10 hover:bg-neon-green/20'
+                                                    : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5'
                                                     }`}
                                                 title={secret.plaintext !== null ? 'Hide' : 'Decrypt'}
                                             >
@@ -352,6 +394,16 @@ const DashboardPage: React.FC = () => {
                                                 )}
                                             </button>
                                         )}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditModal(secret);
+                                            }}
+                                            className="p-1.5 rounded-md text-slate-700 hover:text-accent-blue hover:bg-accent-blue/5 transition-all duration-300 opacity-0 group-hover:opacity-100"
+                                            title="Edit"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -382,6 +434,13 @@ const DashboardPage: React.FC = () => {
                                     </span>
                                     <div className="flex items-center gap-1.5">
                                         <button
+                                            onClick={() => openEditModal(selectedSecret)}
+                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all duration-300 text-slate-600 hover:text-accent-blue hover:bg-accent-blue/5 border border-transparent"
+                                        >
+                                            <Pencil size={10} />
+                                            Edit
+                                        </button>
+                                        <button
                                             onClick={() => {
                                                 if (selectedSecret.plaintext) {
                                                     copyToClipboard(
@@ -391,8 +450,8 @@ const DashboardPage: React.FC = () => {
                                                 }
                                             }}
                                             className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all duration-300 ${copiedId === selectedSecret.id
-                                                    ? 'bg-neon-green/10 text-neon-green border border-neon-green/20'
-                                                    : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5 border border-transparent'
+                                                ? 'bg-neon-green/10 text-neon-green border border-neon-green/20'
+                                                : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5 border border-transparent'
                                                 }`}
                                         >
                                             {copiedId === selectedSecret.id ? (
@@ -448,14 +507,21 @@ const DashboardPage: React.FC = () => {
                         </span>
                         <div className="flex items-center gap-1">
                             <button
+                                onClick={() => openEditModal(selectedSecret)}
+                                className="p-1.5 rounded text-slate-600 hover:text-accent-blue transition-colors"
+                                title="Edit"
+                            >
+                                <Pencil size={14} />
+                            </button>
+                            <button
                                 onClick={() => {
                                     if (selectedSecret.plaintext) {
                                         copyToClipboard(selectedSecret.plaintext, selectedSecret.id);
                                     }
                                 }}
                                 className={`p-1.5 rounded transition-all ${copiedId === selectedSecret.id
-                                        ? 'text-neon-green'
-                                        : 'text-slate-600 hover:text-neon-green'
+                                    ? 'text-neon-green'
+                                    : 'text-slate-600 hover:text-neon-green'
                                     }`}
                             >
                                 {copiedId === selectedSecret.id ? (
@@ -490,17 +556,21 @@ const DashboardPage: React.FC = () => {
 
                         <div className="flex items-center justify-between p-5 border-b border-[#1e1e1e]">
                             <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg bg-neon-green/10 flex items-center justify-center border border-neon-green/20">
-                                    <Plus size={14} className="text-neon-green" />
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${editingSecret
+                                    ? 'bg-accent-blue/10 border-accent-blue/20'
+                                    : 'bg-neon-green/10 border-neon-green/20'
+                                    }`}>
+                                    {editingSecret
+                                        ? <Pencil size={14} className="text-accent-blue" />
+                                        : <Plus size={14} className="text-neon-green" />
+                                    }
                                 </div>
-                                <span className="font-mono uppercase tracking-wider">New Secret</span>
+                                <span className="font-mono uppercase tracking-wider">
+                                    {editingSecret ? 'Edit Secret' : 'New Secret'}
+                                </span>
                             </h2>
                             <button
-                                onClick={() => {
-                                    setShowAddModal(false);
-                                    setEditTitle('');
-                                    setEditContent('');
-                                }}
+                                onClick={closeModal}
                                 className="p-1.5 text-slate-600 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                             >
                                 <X size={16} />
@@ -517,8 +587,11 @@ const DashboardPage: React.FC = () => {
                                     value={editTitle}
                                     onChange={(e) => setEditTitle(e.target.value)}
                                     placeholder="e.g., GitHub SSH Key, AWS Credentials"
-                                    className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white px-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono"
-                                    autoFocus
+                                    className={`w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white px-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono ${editingSecret ? 'opacity-60 cursor-not-allowed' : ''
+                                        }`}
+                                    autoFocus={!editingSecret}
+                                    readOnly={!!editingSecret}
+                                    title={editingSecret ? 'Title cannot be changed during edit' : ''}
                                 />
                             </div>
 
@@ -551,11 +624,7 @@ const DashboardPage: React.FC = () => {
 
                             <div className="flex gap-3 pt-1">
                                 <button
-                                    onClick={() => {
-                                        setShowAddModal(false);
-                                        setEditTitle('');
-                                        setEditContent('');
-                                    }}
+                                    onClick={closeModal}
                                     className="flex-1 px-4 py-2.5 bg-[#111111] hover:bg-[#1a1a1a] text-slate-400 rounded-lg font-semibold transition-colors text-xs font-mono uppercase tracking-wider border border-[#1e1e1e]"
                                 >
                                     Cancel
@@ -573,7 +642,7 @@ const DashboardPage: React.FC = () => {
                                     ) : (
                                         <>
                                             <Zap size={14} />
-                                            Encrypt & Save
+                                            {editingSecret ? 'Re-encrypt & Save' : 'Encrypt & Save'}
                                         </>
                                     )}
                                 </button>

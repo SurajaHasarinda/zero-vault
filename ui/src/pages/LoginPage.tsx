@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, User, Loader2, AlertCircle, UserPlus, LogIn, Terminal, Fingerprint } from 'lucide-react';
+import { Lock, User, Loader2, AlertCircle, UserPlus, LogIn, Terminal, Fingerprint } from 'lucide-react';
 import { api } from '../api';
 import { deriveKeys } from '../utils/cryptoUtils';
 import { useCryptoKey } from '../context/CryptoContext';
@@ -61,19 +61,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             <div className="w-full max-w-md relative z-10">
                 {/* Logo & Title */}
                 <div className="flex flex-col items-center mb-8 text-center">
-                    <div className="w-20 h-20 rounded-2xl bg-neon-green/[0.08] flex items-center justify-center border border-neon-green/20 mb-6 animate-pulse-glow animate-float relative">
-                        <Shield size={36} className="text-neon-green animate-neon-flicker" />
-                        {/* Corner accents */}
-                        <div className="absolute -top-px -left-px w-3 h-3 border-t border-l border-neon-green/40" />
-                        <div className="absolute -top-px -right-px w-3 h-3 border-t border-r border-neon-green/40" />
-                        <div className="absolute -bottom-px -left-px w-3 h-3 border-b border-l border-neon-green/40" />
-                        <div className="absolute -bottom-px -right-px w-3 h-3 border-b border-r border-neon-green/40" />
+                    <div className="mb-6 relative group flex items-center justify-center">
+                        <img
+                            src="/zero-vault.svg"
+                            alt="Vault Zero Logo"
+                            className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-500 hover:drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                        />
                     </div>
                     <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">
                         Vault Zero
                     </h1>
                     <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
-                        Zero-knowledge secret manager. Your secrets never leave your browser unencrypted.
+                        Zero-knowledge secret manager.
                     </p>
                 </div>
 
