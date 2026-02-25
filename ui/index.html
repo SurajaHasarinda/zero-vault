@@ -1,92 +1,380 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vault Zero — Zero-Knowledge Secret Manager</title>
-    <meta name="description" content="A zero-knowledge secret manager. Your secrets never leave your browser unencrypted." />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              vault: '#8B5CF6',
-              'vault-dark': '#7C3AED',
-              'vault-light': '#A78BFA',
-              success: '#10B981',
-              warning: '#F59E0B',
-              danger: '#EF4444',
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vault Zero — Zero-Knowledge Secret Manager</title>
+  <meta name="description"
+    content="A zero-knowledge secret manager. Your secrets never leave your browser unencrypted." />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#0a0a0a',
+              surface: '#111111',
+              card: '#141414',
+              border: '#1e1e1e',
+              'border-hover': '#2a2a2a',
+            },
+            neon: {
+              green: '#10b981',
+              'green-dim': '#059669',
+              'green-glow': '#34d399',
+            },
+            accent: {
+              red: '#ef4444',
+              'red-dim': '#dc2626',
+              amber: '#f59e0b',
+              blue: '#3b82f6',
+            },
+            slate: {
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
             }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
+            sans: ['"Inter"', 'system-ui', 'sans-serif'],
           }
         }
       }
-    </script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-      body {
-        font-family: 'Inter', system-ui, sans-serif;
-        background-color: #0f172a;
-        color: #f8fafc;
-      }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-      .font-mono {
-        font-family: 'JetBrains Mono', 'Courier New', monospace;
-      }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #0a0a0a;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
 
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #334155;
-        border-radius: 10px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #475569;
-      }
+    .font-mono {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    }
 
-      @keyframes slide-up {
-        from { transform: translateY(100%); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-      @keyframes shrink {
-        from { width: 100%; }
-        to { width: 0%; }
-      }
-      @keyframes fade-in {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-      }
-      @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
-        50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.3); }
-      }
-      @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-6px); }
+    /* ─── Scrollbar ───────────────────────────────────────────── */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #10b98140;
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #10b98180;
+    }
+
+    /* ─── Animations ──────────────────────────────────────────── */
+    @keyframes slide-up {
+      from {
+        transform: translateY(100%);
+        opacity: 0;
       }
 
-      .animate-slide-up { animation: slide-up 0.3s ease-out; }
-      .animate-fade-in { animation: fade-in 0.25s ease-out; }
-      .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
-      .animate-float { animation: float 3s ease-in-out infinite; }
-
-      .glass {
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+      to {
+        transform: translateY(0);
+        opacity: 1;
       }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    }
+
+    @keyframes shrink {
+      from {
+        width: 100%;
+      }
+
+      to {
+        width: 0%;
+      }
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.15), 0 0 30px rgba(16, 185, 129, 0.05);
+      }
+
+      50% {
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.3), 0 0 60px rgba(16, 185, 129, 0.1);
+      }
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    @keyframes scanline {
+      0% {
+        transform: translateY(-100%);
+      }
+
+      100% {
+        transform: translateY(100vh);
+      }
+    }
+
+    @keyframes blink-cursor {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes neon-flicker {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      92% {
+        opacity: 1;
+      }
+
+      93% {
+        opacity: 0.8;
+      }
+
+      94% {
+        opacity: 1;
+      }
+
+      96% {
+        opacity: 0.9;
+      }
+
+      97% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes border-glow-pulse {
+
+      0%,
+      100% {
+        border-color: #10b98130;
+      }
+
+      50% {
+        border-color: #10b98160;
+      }
+    }
+
+    @keyframes grid-shift {
+      0% {
+        background-position: 0 0;
+      }
+
+      100% {
+        background-position: 40px 40px;
+      }
+    }
+
+    .animate-slide-up {
+      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .animate-fade-in {
+      animation: fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .animate-neon-flicker {
+      animation: neon-flicker 4s ease-in-out infinite;
+    }
+
+    /* ─── Glass ────────────────────────────────────────────────── */
+    .glass {
+      background: rgba(17, 17, 17, 0.7);
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    }
+
+    .glass-heavy {
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(40px) saturate(1.4);
+      -webkit-backdrop-filter: blur(40px) saturate(1.4);
+    }
+
+    /* ─── Cyber Borders ────────────────────────────────────────── */
+    .cyber-border {
+      border: 1px solid #1e1e1e;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .cyber-border:hover {
+      border-color: #10b98140;
+    }
+
+    .cyber-border-active {
+      border: 1px solid #10b98150;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.08), inset 0 0 15px rgba(16, 185, 129, 0.03);
+    }
+
+    /* ─── Terminal Code Block ──────────────────────────────────── */
+    .terminal-block {
+      background: #0a0a0a;
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terminal-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .terminal-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ─── Hex Grid Background ──────────────────────────────────── */
+    .hex-grid {
+      background-image:
+        linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ─── Focus Styles ─────────────────────────────────────────── */
+    input:focus,
+    textarea:focus {
+      border-color: #10b98160 !important;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1), 0 0 20px rgba(16, 185, 129, 0.05) !important;
+    }
+
+    /* ─── Button Glow ──────────────────────────────────────────── */
+    .btn-cyber {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .btn-cyber:hover {
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-cyber:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .btn-ghost {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+    }
+
+    /* ─── Selection ────────────────────────────────────────────── */
+    ::selection {
+      background: rgba(16, 185, 129, 0.3);
+      color: #fff;
+    }
+
+    /* ─── Scanline overlay ─────────────────────────────────────── */
+    .scanline-overlay::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(16, 185, 129, 0.01) 2px,
+          rgba(16, 185, 129, 0.01) 4px);
+      z-index: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

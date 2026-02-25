@@ -15,6 +15,11 @@ import {
     FolderLock,
     X,
     Save,
+    Terminal,
+    Lock,
+    Zap,
+    Database,
+    ChevronRight,
 } from 'lucide-react';
 import { api, SecretEntry } from '../api';
 import { useCryptoKey } from '../context/CryptoContext';
@@ -25,7 +30,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog';
 interface DecryptedSecret {
     id: string;
     title: string;
-    plaintext: string | null;   // null = not yet decrypted
+    plaintext: string | null;
     encrypted_blob: string;
     updated_at: string;
     isDecrypting: boolean;
@@ -88,7 +93,6 @@ const DashboardPage: React.FC = () => {
     const toggleDecrypt = async (secret: DecryptedSecret) => {
         if (!encryptionKey) return;
 
-        // If already decrypted, hide it
         if (secret.plaintext !== null) {
             setSecrets((prev) =>
                 prev.map((s) =>
@@ -99,7 +103,6 @@ const DashboardPage: React.FC = () => {
             return;
         }
 
-        // Decrypt
         setSecrets((prev) =>
             prev.map((s) =>
                 s.id === secret.id ? { ...s, isDecrypting: true } : s
@@ -132,6 +135,7 @@ const DashboardPage: React.FC = () => {
         try {
             await navigator.clipboard.writeText(text);
             setCopiedId(id);
+            showSnackbar('Copied to clipboard', 'success');
             setTimeout(() => setCopiedId(null), 2000);
         } catch {
             showSnackbar('Failed to copy', 'error');
@@ -148,7 +152,7 @@ const DashboardPage: React.FC = () => {
             const blob = await encryptText(editContent, encryptionKey);
             await api.upsertSecret(editTitle.trim(), blob);
             showSnackbar(
-                `Secret "${editTitle.trim()}" saved successfully`,
+                `Secret "${editTitle.trim()}" encrypted & stored`,
                 'success'
             );
             setShowAddModal(false);
@@ -196,52 +200,84 @@ const DashboardPage: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <FolderLock size={28} className="text-vault-light" />
+                    <h1 className="text-xl font-bold text-white flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-neon-green/10 flex items-center justify-center border border-neon-green/20">
+                            <FolderLock size={16} className="text-neon-green" />
+                        </div>
                         Your Vault
                     </h1>
-                    <p className="text-slate-400 text-sm mt-1">
+                    <p className="text-slate-600 text-xs mt-1.5 font-mono uppercase tracking-wider">
                         {secrets.length} secret{secrets.length !== 1 ? 's' : ''} stored · End-to-end encrypted
                     </p>
                 </div>
                 <button
                     onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-5 py-3 bg-vault hover:bg-vault-dark text-white font-semibold rounded-xl shadow-lg shadow-vault/20 transition-all active:scale-[0.98]"
+                    className="flex items-center gap-2 px-4 py-2.5 btn-cyber text-white text-xs font-semibold rounded-lg font-mono uppercase tracking-wider"
                 >
-                    <Plus size={20} />
+                    <Plus size={16} />
                     Add Secret
                 </button>
+            </div>
+
+            {/* Stats Bar */}
+            <div className="grid grid-cols-3 gap-3">
+                <div className="glass rounded-lg border border-[#1e1e1e] p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                        <Database size={12} className="text-neon-green/60" />
+                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-wider">Total</span>
+                    </div>
+                    <p className="text-lg font-bold text-white font-mono">{secrets.length}</p>
+                </div>
+                <div className="glass rounded-lg border border-[#1e1e1e] p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                        <Lock size={12} className="text-neon-green/60" />
+                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-wider">Encrypted</span>
+                    </div>
+                    <p className="text-lg font-bold text-white font-mono">
+                        {secrets.filter(s => s.plaintext === null).length}
+                    </p>
+                </div>
+                <div className="glass rounded-lg border border-[#1e1e1e] p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                        <Eye size={12} className="text-neon-green/60" />
+                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-wider">Decrypted</span>
+                    </div>
+                    <p className="text-lg font-bold text-white font-mono">
+                        {secrets.filter(s => s.plaintext !== null).length}
+                    </p>
+                </div>
             </div>
 
             {/* Search */}
             <div className="relative">
                 <Search
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
-                    size={18}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600"
+                    size={16}
                 />
                 <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search secrets by topic..."
-                    className="w-full bg-slate-900 border border-slate-800 text-white pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all placeholder:text-slate-600"
+                    placeholder="Search secrets..."
+                    className="w-full bg-cyber-surface border border-[#1e1e1e] text-white pl-10 pr-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono"
                 />
             </div>
 
             {/* Content */}
             {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <Loader2 size={32} className="animate-spin text-vault-light" />
+                <div className="flex flex-col items-center justify-center py-20">
+                    <Loader2 size={28} className="animate-spin text-neon-green mb-3" />
+                    <p className="text-xs text-slate-600 font-mono uppercase tracking-wider">Loading vault...</p>
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-20 h-20 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
-                        <ShieldCheck size={36} className="text-slate-600" />
+                    <div className="w-16 h-16 rounded-xl bg-[#111111] border border-[#1e1e1e] flex items-center justify-center mb-4">
+                        <ShieldCheck size={28} className="text-slate-700" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-400 mb-1">
+                    <h3 className="text-sm font-semibold text-slate-500 mb-1">
                         {searchQuery ? 'No matching secrets' : 'Your vault is empty'}
                     </h3>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-xs text-slate-700 font-mono">
                         {searchQuery
                             ? 'Try a different search term'
                             : 'Click "Add Secret" to store your first encrypted secret'}
@@ -250,33 +286,38 @@ const DashboardPage: React.FC = () => {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* Secret Cards */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {filtered.map((secret) => (
                             <div
                                 key={secret.id}
-                                className={`bg-slate-900 border rounded-2xl p-5 transition-all duration-200 cursor-pointer hover:border-vault/40 group ${selectedId === secret.id
-                                    ? 'border-vault/60 ring-1 ring-vault/20'
-                                    : 'border-slate-800'
+                                className={`glass rounded-xl p-4 transition-all duration-300 cursor-pointer group relative overflow-hidden ${selectedId === secret.id
+                                    ? 'cyber-border-active'
+                                    : 'cyber-border hover:border-neon-green/20'
                                     }`}
                                 onClick={() => toggleDecrypt(secret)}
                             >
+                                {/* Active indicator line */}
+                                {selectedId === secret.id && (
+                                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-green/40 to-transparent" />
+                                )}
+
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div
-                                            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${secret.plaintext !== null
-                                                ? 'bg-green-500/15 text-green-400 border border-green-500/30'
-                                                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                                            className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${secret.plaintext !== null
+                                                ? 'bg-neon-green/10 text-neon-green border border-neon-green/20 shadow-[0_0_12px_rgba(16,185,129,0.1)]'
+                                                : 'bg-[#141414] text-slate-600 border border-[#1e1e1e]'
                                                 }`}
                                         >
-                                            <KeyRound size={18} />
+                                            <KeyRound size={16} />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="text-white font-semibold truncate">
+                                            <h3 className="text-white font-semibold text-sm truncate">
                                                 {secret.title}
                                             </h3>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <Clock size={12} className="text-slate-600" />
-                                                <span className="text-xs text-slate-600">
+                                                <Clock size={10} className="text-slate-700" />
+                                                <span className="text-[10px] text-slate-700 font-mono">
                                                     {new Date(secret.updated_at).toLocaleDateString('en-US', {
                                                         month: 'short',
                                                         day: 'numeric',
@@ -291,20 +332,23 @@ const DashboardPage: React.FC = () => {
 
                                     <div className="flex items-center gap-1">
                                         {secret.isDecrypting ? (
-                                            <Loader2 size={18} className="animate-spin text-vault-light" />
+                                            <Loader2 size={16} className="animate-spin text-neon-green" />
                                         ) : (
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     toggleDecrypt(secret);
                                                 }}
-                                                className="p-2 rounded-lg text-slate-500 hover:text-vault-light hover:bg-vault/10 transition-colors"
+                                                className={`p-1.5 rounded-md transition-all duration-300 ${secret.plaintext !== null
+                                                        ? 'text-neon-green bg-neon-green/10 hover:bg-neon-green/20'
+                                                        : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5'
+                                                    }`}
                                                 title={secret.plaintext !== null ? 'Hide' : 'Decrypt'}
                                             >
                                                 {secret.plaintext !== null ? (
-                                                    <EyeOff size={18} />
+                                                    <EyeOff size={14} />
                                                 ) : (
-                                                    <Eye size={18} />
+                                                    <Eye size={14} />
                                                 )}
                                             </button>
                                         )}
@@ -313,10 +357,10 @@ const DashboardPage: React.FC = () => {
                                                 e.stopPropagation();
                                                 setDeleteTarget(secret);
                                             }}
-                                            className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-colors opacity-0 group-hover:opacity-100"
+                                            className="p-1.5 rounded-md text-slate-700 hover:text-accent-red hover:bg-accent-red/5 transition-all duration-300 opacity-0 group-hover:opacity-100"
                                             title="Delete"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
                                 </div>
@@ -324,58 +368,66 @@ const DashboardPage: React.FC = () => {
                         ))}
                     </div>
 
-                    {/* Detail Panel */}
+                    {/* Detail Panel — Terminal Style */}
                     <div className="hidden lg:block">
                         {selectedSecret && selectedSecret.plaintext !== null ? (
-                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sticky top-6 animate-fade-in">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-green-500/15 flex items-center justify-center border border-green-500/30">
-                                            <FileText size={18} className="text-green-400" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-white font-bold">
-                                                {selectedSecret.title}
-                                            </h3>
-                                            <p className="text-xs text-green-500 flex items-center gap-1">
-                                                <ShieldCheck size={12} />
-                                                Decrypted · In-memory only
-                                            </p>
-                                        </div>
+                            <div className="terminal-block sticky top-6 animate-fade-in">
+                                {/* Terminal Header */}
+                                <div className="terminal-header">
+                                    <div className="terminal-dot bg-accent-red/80" />
+                                    <div className="terminal-dot bg-accent-amber/80" />
+                                    <div className="terminal-dot bg-neon-green/80" />
+                                    <span className="ml-3 text-[10px] text-slate-600 font-mono uppercase tracking-wider flex-1">
+                                        {selectedSecret.title}
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => {
+                                                if (selectedSecret.plaintext) {
+                                                    copyToClipboard(
+                                                        selectedSecret.plaintext,
+                                                        selectedSecret.id
+                                                    );
+                                                }
+                                            }}
+                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all duration-300 ${copiedId === selectedSecret.id
+                                                    ? 'bg-neon-green/10 text-neon-green border border-neon-green/20'
+                                                    : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5 border border-transparent'
+                                                }`}
+                                        >
+                                            {copiedId === selectedSecret.id ? (
+                                                <>
+                                                    <Check size={10} />
+                                                    Copied
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy size={10} />
+                                                    Copy
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            if (selectedSecret.plaintext) {
-                                                copyToClipboard(
-                                                    selectedSecret.plaintext,
-                                                    selectedSecret.id
-                                                );
-                                            }
-                                        }}
-                                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors text-sm"
-                                    >
-                                        {copiedId === selectedSecret.id ? (
-                                            <>
-                                                <Check size={14} className="text-green-400" />
-                                                Copied
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy size={14} />
-                                                Copy
-                                            </>
-                                        )}
-                                    </button>
                                 </div>
-                                <pre className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-300 font-mono whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto custom-scrollbar">
+
+                                {/* Status Badge */}
+                                <div className="px-4 py-2 border-b border-[#1e1e1e] flex items-center gap-2">
+                                    <ShieldCheck size={12} className="text-neon-green" />
+                                    <span className="text-[9px] text-neon-green font-mono uppercase tracking-wider">
+                                        Decrypted · In-memory only
+                                    </span>
+                                </div>
+
+                                {/* Content */}
+                                <pre className="p-4 text-sm text-neon-green-glow/80 font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto custom-scrollbar leading-relaxed">
                                     {selectedSecret.plaintext}
                                 </pre>
                             </div>
                         ) : (
-                            <div className="bg-slate-900/50 border border-slate-800/50 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
-                                <Eye size={32} className="text-slate-700 mb-3" />
-                                <p className="text-slate-600 text-sm">
-                                    Click on a secret to decrypt and view its contents
+                            <div className="glass rounded-xl border border-[#1e1e1e] border-dashed p-12 flex flex-col items-center justify-center text-center">
+                                <Terminal size={28} className="text-slate-800 mb-3" />
+                                <p className="text-slate-700 text-xs font-mono">
+                                    Click a secret to decrypt and view
                                 </p>
                             </div>
                         )}
@@ -385,25 +437,31 @@ const DashboardPage: React.FC = () => {
 
             {/* Mobile detail view */}
             {selectedSecret && selectedSecret.plaintext !== null && (
-                <div className="lg:hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 animate-fade-in">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-white font-bold flex items-center gap-2">
-                            <FileText size={16} className="text-green-400" />
+                <div className="lg:hidden terminal-block animate-fade-in">
+                    {/* Terminal Header */}
+                    <div className="terminal-header">
+                        <div className="terminal-dot bg-accent-red/80" />
+                        <div className="terminal-dot bg-accent-amber/80" />
+                        <div className="terminal-dot bg-neon-green/80" />
+                        <span className="ml-3 text-[10px] text-slate-600 font-mono uppercase tracking-wider flex-1 truncate">
                             {selectedSecret.title}
-                        </h3>
-                        <div className="flex items-center gap-2">
+                        </span>
+                        <div className="flex items-center gap-1">
                             <button
                                 onClick={() => {
                                     if (selectedSecret.plaintext) {
                                         copyToClipboard(selectedSecret.plaintext, selectedSecret.id);
                                     }
                                 }}
-                                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                                className={`p-1.5 rounded transition-all ${copiedId === selectedSecret.id
+                                        ? 'text-neon-green'
+                                        : 'text-slate-600 hover:text-neon-green'
+                                    }`}
                             >
                                 {copiedId === selectedSecret.id ? (
-                                    <Check size={16} className="text-green-400" />
+                                    <Check size={14} />
                                 ) : (
-                                    <Copy size={16} />
+                                    <Copy size={14} />
                                 )}
                             </button>
                             <button
@@ -411,13 +469,13 @@ const DashboardPage: React.FC = () => {
                                     toggleDecrypt(selectedSecret);
                                     setSelectedId(null);
                                 }}
-                                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                                className="p-1.5 rounded text-slate-600 hover:text-neon-green transition-colors"
                             >
-                                <EyeOff size={16} />
+                                <EyeOff size={14} />
                             </button>
                         </div>
                     </div>
-                    <pre className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-300 font-mono whitespace-pre-wrap break-words max-h-[40vh] overflow-y-auto custom-scrollbar">
+                    <pre className="p-4 text-sm text-neon-green-glow/80 font-mono whitespace-pre-wrap break-words max-h-[40vh] overflow-y-auto custom-scrollbar leading-relaxed">
                         {selectedSecret.plaintext}
                     </pre>
                 </div>
@@ -425,12 +483,17 @@ const DashboardPage: React.FC = () => {
 
             {/* ─── Add Secret Modal ───────────────────────────────────────── */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-slate-900 rounded-2xl border border-slate-800 w-full max-w-lg shadow-2xl animate-fade-in">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Plus size={20} className="text-vault-light" />
-                                Add New Secret
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+                    <div className="glass-heavy rounded-xl border border-[#1e1e1e] w-full max-w-lg shadow-2xl shadow-black/50 animate-fade-in relative overflow-hidden">
+                        {/* Top glow */}
+                        <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-neon-green/30 to-transparent" />
+
+                        <div className="flex items-center justify-between p-5 border-b border-[#1e1e1e]">
+                            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-neon-green/10 flex items-center justify-center border border-neon-green/20">
+                                    <Plus size={14} className="text-neon-green" />
+                                </div>
+                                <span className="font-mono uppercase tracking-wider">New Secret</span>
                             </h2>
                             <button
                                 onClick={() => {
@@ -438,67 +501,78 @@ const DashboardPage: React.FC = () => {
                                     setEditTitle('');
                                     setEditContent('');
                                 }}
-                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                className="p-1.5 text-slate-600 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                             >
-                                <X size={20} />
+                                <X size={16} />
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-5">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-slate-300 ml-1">
+                        <div className="p-5 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
                                     Title
                                 </label>
                                 <input
                                     type="text"
                                     value={editTitle}
                                     onChange={(e) => setEditTitle(e.target.value)}
-                                    placeholder="e.g., GitHub SSH Key, AWS Credentials, .env Production"
-                                    className="w-full bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all placeholder:text-slate-600"
+                                    placeholder="e.g., GitHub SSH Key, AWS Credentials"
+                                    className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white px-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono"
                                     autoFocus
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-slate-300 ml-1">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
                                     Secret Content
                                 </label>
-                                <textarea
-                                    value={editContent}
-                                    onChange={(e) => setEditContent(e.target.value)}
-                                    placeholder={`DB_HOST=localhost\nDB_USER=admin\nDB_PASS=supersecret\nAPI_KEY=sk-abc123...`}
-                                    rows={10}
-                                    className="w-full bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all placeholder:text-slate-600 font-mono text-sm resize-none custom-scrollbar"
-                                />
-                                <p className="text-[11px] text-slate-500 ml-1">
-                                    🔒 Content is encrypted with AES-256-GCM before leaving your browser.
+                                <div className="terminal-block">
+                                    <div className="terminal-header">
+                                        <div className="terminal-dot bg-accent-red/60" />
+                                        <div className="terminal-dot bg-accent-amber/60" />
+                                        <div className="terminal-dot bg-neon-green/60" />
+                                        <span className="ml-3 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
+                                            plaintext
+                                        </span>
+                                    </div>
+                                    <textarea
+                                        value={editContent}
+                                        onChange={(e) => setEditContent(e.target.value)}
+                                        placeholder={`DB_HOST=localhost\nDB_USER=admin\nDB_PASS=supersecret\nAPI_KEY=sk-abc123...`}
+                                        rows={8}
+                                        className="w-full bg-transparent text-neon-green-glow/80 px-4 py-3 focus:outline-none transition-all placeholder:text-slate-800 font-mono text-sm resize-none custom-scrollbar leading-relaxed"
+                                    />
+                                </div>
+                                <p className="text-[9px] text-slate-700 ml-1 font-mono flex items-center gap-1.5 mt-1">
+                                    <Lock size={8} className="text-neon-green/50" />
+                                    Content encrypted with AES-256-GCM before leaving browser
                                 </p>
                             </div>
 
-                            <div className="flex gap-3 pt-2">
+                            <div className="flex gap-3 pt-1">
                                 <button
                                     onClick={() => {
                                         setShowAddModal(false);
                                         setEditTitle('');
                                         setEditContent('');
                                     }}
-                                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-colors"
+                                    className="flex-1 px-4 py-2.5 bg-[#111111] hover:bg-[#1a1a1a] text-slate-400 rounded-lg font-semibold transition-colors text-xs font-mono uppercase tracking-wider border border-[#1e1e1e]"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
                                     disabled={saving || !editTitle.trim() || !editContent.trim()}
-                                    className="flex-1 px-4 py-3 bg-vault hover:bg-vault-dark text-white rounded-xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
                                 >
                                     {saving ? (
                                         <>
-                                            <Loader2 size={18} className="animate-spin" />
+                                            <Loader2 size={14} className="animate-spin" />
                                             Encrypting...
                                         </>
                                     ) : (
                                         <>
-                                            <Save size={18} />
+                                            <Zap size={14} />
                                             Encrypt & Save
                                         </>
                                     )}

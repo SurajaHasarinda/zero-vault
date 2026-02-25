@@ -24,59 +24,63 @@ const Snackbar: React.FC<SnackbarProps> = ({ message, type, isOpen, onClose, dur
     const config = {
         success: {
             icon: CheckCircle,
-            bg: 'bg-green-500/10',
-            border: 'border-green-500/50',
-            text: 'text-green-500',
-            iconBg: 'bg-green-500/20',
+            bg: 'bg-neon-green/5',
+            border: 'border-neon-green/20',
+            text: 'text-neon-green',
+            barColor: 'bg-neon-green',
+            glow: 'shadow-[0_0_20px_rgba(16,185,129,0.1)]',
         },
         error: {
             icon: XCircle,
-            bg: 'bg-red-500/10',
-            border: 'border-red-500/50',
-            text: 'text-red-500',
-            iconBg: 'bg-red-500/20',
+            bg: 'bg-accent-red/5',
+            border: 'border-accent-red/20',
+            text: 'text-accent-red',
+            barColor: 'bg-accent-red',
+            glow: 'shadow-[0_0_20px_rgba(239,68,68,0.1)]',
         },
         warning: {
             icon: AlertCircle,
-            bg: 'bg-yellow-500/10',
-            border: 'border-yellow-500/50',
-            text: 'text-yellow-500',
-            iconBg: 'bg-yellow-500/20',
+            bg: 'bg-accent-amber/5',
+            border: 'border-accent-amber/20',
+            text: 'text-accent-amber',
+            barColor: 'bg-accent-amber',
+            glow: 'shadow-[0_0_20px_rgba(245,158,11,0.1)]',
         },
         info: {
             icon: Info,
-            bg: 'bg-blue-500/10',
-            border: 'border-blue-500/50',
-            text: 'text-blue-500',
-            iconBg: 'bg-blue-500/20',
+            bg: 'bg-accent-blue/5',
+            border: 'border-accent-blue/20',
+            text: 'text-accent-blue',
+            barColor: 'bg-accent-blue',
+            glow: 'shadow-[0_0_20px_rgba(59,130,246,0.1)]',
         },
     };
 
-    const { icon: Icon, bg, border, text, iconBg } = config[type];
+    const { icon: Icon, bg, border, text, barColor, glow } = config[type];
 
     return (
         <div className="fixed bottom-6 right-6 z-[70] animate-slide-up">
-            <div className={`${bg} border ${border} rounded-xl shadow-2xl overflow-hidden max-w-md`}>
-                <div className="flex items-start gap-3 p-4">
-                    <div className={`${iconBg} p-2 rounded-lg flex-shrink-0`}>
-                        <Icon size={20} className={text} />
+            <div className={`glass-heavy border ${border} rounded-lg ${glow} overflow-hidden max-w-sm`}>
+                <div className="flex items-start gap-3 p-3.5">
+                    <div className={`${bg} p-1.5 rounded-md flex-shrink-0 border ${border}`}>
+                        <Icon size={14} className={text} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-medium leading-relaxed break-words">
+                        <p className="text-slate-300 text-xs font-medium font-mono leading-relaxed break-words">
                             {message}
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1 text-slate-400 hover:text-white transition-colors flex-shrink-0"
+                        className="p-0.5 text-slate-600 hover:text-white transition-colors flex-shrink-0"
                     >
-                        <X size={16} />
+                        <X size={12} />
                     </button>
                 </div>
                 {duration > 0 && (
-                    <div className="h-1 bg-slate-800">
+                    <div className="h-[2px] bg-[#1e1e1e]">
                         <div
-                            className={`h-full ${text.replace('text-', 'bg-')}`}
+                            className={`h-full ${barColor}`}
                             style={{
                                 animation: `shrink ${duration}ms linear`,
                             }}

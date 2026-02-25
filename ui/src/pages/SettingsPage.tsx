@@ -8,6 +8,8 @@ import {
     User,
     Settings,
     Lock,
+    Shield,
+    Fingerprint,
 } from 'lucide-react';
 import { api } from '../api';
 import { deriveKeys } from '../utils/cryptoUtils';
@@ -52,7 +54,7 @@ const SettingsPage: React.FC = () => {
             await api.changePassword(currentLoginHash, newLoginHash);
             setEncryptionKey(newKey);
 
-            setPwMessage({ type: 'success', text: 'Password changed successfully. Re-encrypt your secrets with the new key if needed.' });
+            setPwMessage({ type: 'success', text: 'Password changed. Re-encrypt secrets with the new key if needed.' });
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -98,12 +100,12 @@ const SettingsPage: React.FC = () => {
     const StatusBanner: React.FC<{ msg: { type: 'success' | 'error'; text: string } | null }> = ({ msg }) => {
         if (!msg) return null;
         return (
-            <div className={`px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in ${msg.type === 'success'
-                    ? 'bg-green-500/10 border border-green-500/50 text-green-500'
-                    : 'bg-red-500/10 border border-red-500/50 text-red-500'
+            <div className={`px-4 py-3 rounded-lg flex items-center gap-3 animate-fade-in border ${msg.type === 'success'
+                ? 'bg-neon-green/5 border-neon-green/20 text-neon-green'
+                : 'bg-accent-red/5 border-accent-red/20 text-accent-red'
                 }`}>
-                {msg.type === 'success' ? <CheckCircle size={18} /> : <XCircle size={18} />}
-                <span className="text-sm font-medium">{msg.text}</span>
+                {msg.type === 'success' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                <span className="text-xs font-medium font-mono">{msg.text}</span>
             </div>
         );
     };
@@ -112,71 +114,81 @@ const SettingsPage: React.FC = () => {
         <div className="space-y-6 max-w-2xl">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <Settings size={28} className="text-vault-light" />
+                <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-neon-green/10 flex items-center justify-center border border-neon-green/20">
+                        <Settings size={16} className="text-neon-green" />
+                    </div>
                     Settings
                 </h2>
-                <p className="text-slate-400 text-sm mt-1">
-                    Manage your account details and password.
+                <p className="text-slate-600 text-xs mt-1.5 font-mono uppercase tracking-wider">
+                    Manage your account details and master password
                 </p>
             </div>
 
             {/* ═══ Change Password Section ═════════════════════════════════ */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-vault/10 rounded-lg">
-                        <Key size={20} className="text-vault-light" />
+            <div className="glass rounded-xl border border-[#1e1e1e] overflow-hidden">
+                <div className="flex items-center gap-3 p-5 border-b border-[#1e1e1e]">
+                    <div className="w-8 h-8 rounded-lg bg-neon-green/8 flex items-center justify-center border border-neon-green/15">
+                        <Key size={16} className="text-neon-green" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Change Password</h3>
-                        <p className="text-xs text-slate-500">Update your master password</p>
+                        <h3 className="text-sm font-bold text-white">Change Password</h3>
+                        <p className="text-[10px] text-slate-600 font-mono uppercase tracking-wider">
+                            Update your master password
+                        </p>
                     </div>
                 </div>
 
-                <form onSubmit={handlePasswordChange} className="space-y-4">
+                <form onSubmit={handlePasswordChange} className="p-5 space-y-4">
                     <StatusBanner msg={pwMessage} />
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-300 ml-1">Current Password</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
+                            Current Password
+                        </label>
                         <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
                             <input
                                 type="password"
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
                                 placeholder="Enter current password"
-                                className="w-full bg-slate-800 border border-slate-700 text-white pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all"
+                                className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white pl-10 pr-4 py-2.5 rounded-lg focus:outline-none transition-all text-sm font-mono placeholder:text-slate-700"
                                 required
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-300 ml-1">New Password</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
+                            New Password
+                        </label>
                         <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
                             <input
                                 type="password"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 placeholder="Enter new password (min 8 characters)"
-                                className="w-full bg-slate-800 border border-slate-700 text-white pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all"
+                                className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white pl-10 pr-4 py-2.5 rounded-lg focus:outline-none transition-all text-sm font-mono placeholder:text-slate-700"
                                 required
                                 minLength={8}
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-300 ml-1">Confirm New Password</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
+                            Confirm New Password
+                        </label>
                         <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
                             <input
                                 type="password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="Confirm new password"
-                                className="w-full bg-slate-800 border border-slate-700 text-white pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all"
+                                className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white pl-10 pr-4 py-2.5 rounded-lg focus:outline-none transition-all text-sm font-mono placeholder:text-slate-700"
                                 required
                             />
                         </div>
@@ -185,55 +197,61 @@ const SettingsPage: React.FC = () => {
                     <button
                         type="submit"
                         disabled={pwLoading}
-                        className="w-full md:w-auto px-6 py-3 bg-vault hover:bg-vault-dark text-white rounded-xl font-semibold shadow-lg shadow-vault/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full md:w-auto px-5 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
                     >
-                        {pwLoading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {pwLoading ? <Loader2 size={14} className="animate-spin" /> : <Fingerprint size={14} />}
                         {pwLoading ? 'Deriving keys...' : 'Update Password'}
                     </button>
                 </form>
             </div>
 
             {/* ═══ Change Username Section ═════════════════════════════════ */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-vault/10 rounded-lg">
-                        <User size={20} className="text-vault-light" />
+            <div className="glass rounded-xl border border-[#1e1e1e] overflow-hidden">
+                <div className="flex items-center gap-3 p-5 border-b border-[#1e1e1e]">
+                    <div className="w-8 h-8 rounded-lg bg-neon-green/8 flex items-center justify-center border border-neon-green/15">
+                        <User size={16} className="text-neon-green" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-white">Change Username</h3>
-                        <p className="text-xs text-slate-500">Update your account username</p>
+                        <h3 className="text-sm font-bold text-white">Change Username</h3>
+                        <p className="text-[10px] text-slate-600 font-mono uppercase tracking-wider">
+                            Update your account username
+                        </p>
                     </div>
                 </div>
 
-                <form onSubmit={handleUsernameChange} className="space-y-4">
+                <form onSubmit={handleUsernameChange} className="p-5 space-y-4">
                     <StatusBanner msg={unMessage} />
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-300 ml-1">New Username</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
+                            New Username
+                        </label>
                         <div className="relative">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
                             <input
                                 type="text"
                                 value={newUsername}
                                 onChange={(e) => setNewUsername(e.target.value)}
                                 placeholder="Enter new username (min 3 characters)"
-                                className="w-full bg-slate-800 border border-slate-700 text-white pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all"
+                                className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white pl-10 pr-4 py-2.5 rounded-lg focus:outline-none transition-all text-sm font-mono placeholder:text-slate-700"
                                 required
                                 minLength={3}
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-300 ml-1">Confirm Password</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
+                            Confirm Password
+                        </label>
                         <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
                             <input
                                 type="password"
                                 value={usernamePassword}
                                 onChange={(e) => setUsernamePassword(e.target.value)}
                                 placeholder="Enter your password to confirm"
-                                className="w-full bg-slate-800 border border-slate-700 text-white pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-vault/50 transition-all"
+                                className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white pl-10 pr-4 py-2.5 rounded-lg focus:outline-none transition-all text-sm font-mono placeholder:text-slate-700"
                                 required
                             />
                         </div>
@@ -242,9 +260,9 @@ const SettingsPage: React.FC = () => {
                     <button
                         type="submit"
                         disabled={unLoading}
-                        className="w-full md:w-auto px-6 py-3 bg-vault hover:bg-vault-dark text-white rounded-xl font-semibold shadow-lg shadow-vault/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full md:w-auto px-5 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
                     >
-                        {unLoading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {unLoading ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
                         {unLoading ? 'Saving...' : 'Change Username'}
                     </button>
                 </form>
