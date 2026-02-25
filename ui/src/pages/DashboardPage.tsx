@@ -21,6 +21,7 @@ import {
     Database,
     ChevronRight,
     Pencil,
+    ChevronDown,
 } from 'lucide-react';
 import { api, SecretEntry } from '../api';
 import { useCryptoKey } from '../context/CryptoContext';
@@ -37,6 +38,29 @@ interface DecryptedSecret {
     isDecrypting: boolean;
 }
 
+/** Parse plaintext into KEY=VALUE pairs. Returns null if it's not in that format. */
+function parseKeyValuePairs(text: string): { key: string; value: string }[] | null {
+    const lines = text.split('\n').filter(l => l.trim().length > 0);
+    if (lines.length === 0) return null;
+
+    const pairs: { key: string; value: string }[] = [];
+    for (const line of lines) {
+        const eqIndex = line.indexOf('=');
+        if (eqIndex <= 0) return null; // not KEY=VALUE format
+        const key = line.substring(0, eqIndex).trim();
+        const value = line.substring(eqIndex + 1).trim();
+        if (!key || /\s/.test(key)) return null; // keys shouldn't have spaces
+        pairs.push({ key, value });
+    }
+    return pairs.length > 0 ? pairs : null;
+}
+
+/** Mask a value showing only first and last char */
+function maskValue(value: string): string {
+    if (value.length <= 4) return '•'.repeat(value.length);
+    return value[0] + '•'.repeat(Math.min(value.length - 2, 16)) + value[value.length - 1];
+}
+
 const DashboardPage: React.FC = () => {
     const { encryptionKey } = useCryptoKey();
     const [secrets, setSecrets] = useState<DecryptedSecret[]>([]);
@@ -44,6 +68,7 @@ const DashboardPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [revealedFields, setRevealedFields] = useState<Set<string>>(new Set());
 
     // Add/Edit modal state
     const [showAddModal, setShowAddModal] = useState(false);
@@ -142,6 +167,15 @@ const DashboardPage: React.FC = () => {
         } catch {
             showSnackbar('Failed to copy', 'error');
         }
+    };
+
+    const toggleFieldReveal = (fieldKey: string) => {
+        setRevealedFields(prev => {
+            const next = new Set(prev);
+            if (next.has(fieldKey)) next.delete(fieldKey);
+            else next.add(fieldKey);
+            return next;
+        });
     };
 
     // ─── Open edit modal ──────────────────────────────────────────────────
@@ -261,35 +295,6 @@ const DashboardPage: React.FC = () => {
                 </button>
             </div>
 
-            {/* Stats Bar */}
-            <div className="grid grid-cols-3 gap-3">
-                <div className="glass rounded-lg border border-[#1e1e1e] p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Database size={12} className="text-neon-green/60" />
-                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-wider">Total</span>
-                    </div>
-                    <p className="text-lg font-bold text-white font-mono">{secrets.length}</p>
-                </div>
-                <div className="glass rounded-lg border border-[#1e1e1e] p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Lock size={12} className="text-neon-green/60" />
-                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-wider">Encrypted</span>
-                    </div>
-                    <p className="text-lg font-bold text-white font-mono">
-                        {secrets.filter(s => s.plaintext === null).length}
-                    </p>
-                </div>
-                <div className="glass rounded-lg border border-[#1e1e1e] p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Eye size={12} className="text-neon-green/60" />
-                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-wider">Decrypted</span>
-                    </div>
-                    <p className="text-lg font-bold text-white font-mono">
-                        {secrets.filter(s => s.plaintext !== null).length}
-                    </p>
-                </div>
-            </div>
-
             {/* Search */}
             <div className="relative">
                 <Search
@@ -326,28 +331,31 @@ const DashboardPage: React.FC = () => {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Secret Cards */}
-                    <div className="space-y-2">
-                        {filtered.map((secret) => (
+                <div className="space-y-3">
+                    {filtered.map((secret) => {
+                        const isOpen = secret.plaintext !== null;
+                        return (
                             <div
                                 key={secret.id}
-                                className={`glass rounded-xl p-4 transition-all duration-300 cursor-pointer group relative overflow-hidden ${selectedId === secret.id
-                                    ? 'cyber-border-active'
+                                className={`glass rounded-xl transition-all duration-400 group relative overflow-hidden ${isOpen
+                                    ? 'cyber-border-active ring-1 ring-neon-green/10'
                                     : 'cyber-border hover:border-neon-green/20'
                                     }`}
-                                onClick={() => toggleDecrypt(secret)}
                             >
-                                {/* Active indicator line */}
-                                {selectedId === secret.id && (
-                                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-green/40 to-transparent" />
+                                {/* Top glow when open */}
+                                {isOpen && (
+                                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-green/50 to-transparent" />
                                 )}
 
-                                <div className="flex items-start justify-between gap-3">
+                                {/* Card Header — always visible */}
+                                <div
+                                    className="flex items-center justify-between gap-3 p-4 cursor-pointer"
+                                    onClick={() => toggleDecrypt(secret)}
+                                >
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div
-                                            className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${secret.plaintext !== null
-                                                ? 'bg-neon-green/10 text-neon-green border border-neon-green/20 shadow-[0_0_12px_rgba(16,185,129,0.1)]'
+                                            className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${isOpen
+                                                ? 'bg-neon-green/10 text-neon-green border border-neon-green/20 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
                                                 : 'bg-[#141414] text-slate-600 border border-[#1e1e1e]'
                                                 }`}
                                         >
@@ -357,9 +365,9 @@ const DashboardPage: React.FC = () => {
                                             <h3 className="text-white font-semibold text-sm truncate">
                                                 {secret.title}
                                             </h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Clock size={10} className="text-slate-700" />
-                                                <span className="text-[10px] text-slate-700 font-mono">
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <Clock size={10} className="text-slate-700 flex-shrink-0" />
+                                                <span className="text-[10px] text-slate-700 font-mono truncate">
                                                     {new Date(secret.updated_at).toLocaleDateString('en-US', {
                                                         month: 'short',
                                                         day: 'numeric',
@@ -372,7 +380,7 @@ const DashboardPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 flex-shrink-0">
                                         {secret.isDecrypting ? (
                                             <Loader2 size={16} className="animate-spin text-neon-green" />
                                         ) : (
@@ -381,169 +389,130 @@ const DashboardPage: React.FC = () => {
                                                     e.stopPropagation();
                                                     toggleDecrypt(secret);
                                                 }}
-                                                className={`p-1.5 rounded-md transition-all duration-300 ${secret.plaintext !== null
+                                                className={`p-1.5 rounded-md transition-all duration-300 ${isOpen
                                                     ? 'text-neon-green bg-neon-green/10 hover:bg-neon-green/20'
                                                     : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5'
                                                     }`}
-                                                title={secret.plaintext !== null ? 'Hide' : 'Decrypt'}
+                                                title={isOpen ? 'Collapse' : 'Expand & Decrypt'}
                                             >
-                                                {secret.plaintext !== null ? (
-                                                    <EyeOff size={14} />
-                                                ) : (
-                                                    <Eye size={14} />
-                                                )}
+                                                <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
                                             </button>
                                         )}
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                openEditModal(secret);
-                                            }}
-                                            className="p-1.5 rounded-md text-slate-700 hover:text-accent-blue hover:bg-accent-blue/5 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                                            title="Edit"
-                                        >
-                                            <Pencil size={14} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
                                                 setDeleteTarget(secret);
                                             }}
-                                            className="p-1.5 rounded-md text-slate-700 hover:text-accent-red hover:bg-accent-red/5 transition-all duration-300 opacity-0 group-hover:opacity-100"
+                                            className="p-1.5 rounded-md text-slate-700 hover:text-accent-red hover:bg-accent-red/5 transition-all duration-300"
                                             title="Delete"
                                         >
                                             <Trash2 size={14} />
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
 
-                    {/* Detail Panel — Terminal Style */}
-                    <div className="hidden lg:block">
-                        {selectedSecret && selectedSecret.plaintext !== null ? (
-                            <div className="terminal-block sticky top-6 animate-fade-in">
-                                {/* Terminal Header */}
-                                <div className="terminal-header">
-                                    <div className="terminal-dot bg-accent-red/80" />
-                                    <div className="terminal-dot bg-accent-amber/80" />
-                                    <div className="terminal-dot bg-neon-green/80" />
-                                    <span className="ml-3 text-[10px] text-slate-600 font-mono uppercase tracking-wider flex-1">
-                                        {selectedSecret.title}
-                                    </span>
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={() => openEditModal(selectedSecret)}
-                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all duration-300 text-slate-600 hover:text-accent-blue hover:bg-accent-blue/5 border border-transparent"
-                                        >
-                                            <Pencil size={10} />
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                if (selectedSecret.plaintext) {
-                                                    copyToClipboard(
-                                                        selectedSecret.plaintext,
-                                                        selectedSecret.id
+                                {/* Accordion Body — decrypted content */}
+                                {isOpen && (
+                                    <div
+                                        className="animate-fade-in"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {/* Action bar */}
+                                        <div className="flex items-center justify-between px-4 py-2 border-t border-[#1e1e1e] bg-[#0c0c0c]">
+                                            <div className="flex items-center gap-2">
+                                                <ShieldCheck size={12} className="text-neon-green" />
+                                                <span className="text-[9px] text-neon-green font-mono uppercase tracking-wider">
+                                                    Decrypted · In-memory only
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => openEditModal(secret)}
+                                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all duration-300 text-slate-600 hover:text-accent-blue hover:bg-accent-blue/5"
+                                                >
+                                                    <Pencil size={10} />
+                                                    Edit
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Smart content renderer */}
+                                        <div className="mx-3 mb-3 mt-1 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                                            {(() => {
+                                                const pairs = secret.plaintext ? parseKeyValuePairs(secret.plaintext) : null;
+                                                if (pairs) {
+                                                    return (
+                                                        <div className="space-y-1.5">
+                                                            {pairs.map(({ key, value }, idx) => {
+                                                                const fieldId = `${secret.id}:${key}`;
+                                                                const isRevealed = revealedFields.has(fieldId);
+                                                                const isCopied = copiedId === fieldId;
+                                                                return (
+                                                                    <div
+                                                                        key={idx}
+                                                                        className="rounded-lg bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#252525] transition-all duration-200"
+                                                                    >
+                                                                        <div className="flex items-center justify-between px-3 py-2">
+                                                                            <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider flex-shrink-0">
+                                                                                {key}
+                                                                            </span>
+                                                                            <div className="flex items-center gap-1">
+                                                                                <button
+                                                                                    onClick={() => toggleFieldReveal(fieldId)}
+                                                                                    className="p-1 rounded text-slate-700 hover:text-slate-400 transition-colors"
+                                                                                    title={isRevealed ? 'Hide' : 'Reveal'}
+                                                                                >
+                                                                                    {isRevealed ? <EyeOff size={12} /> : <Eye size={12} />}
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => copyToClipboard(value, fieldId)}
+                                                                                    className={`p-1 rounded transition-colors ${isCopied
+                                                                                        ? 'text-neon-green'
+                                                                                        : 'text-slate-700 hover:text-neon-green'
+                                                                                        }`}
+                                                                                    title="Copy value"
+                                                                                >
+                                                                                    {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="px-3 pb-2.5">
+                                                                            <span className={`text-sm font-mono break-all select-text cursor-text transition-all duration-200 ${isRevealed
+                                                                                    ? 'text-neon-green-glow/90'
+                                                                                    : 'text-slate-600 select-none'
+                                                                                }`}>
+                                                                                {isRevealed ? value : maskValue(value)}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     );
                                                 }
-                                            }}
-                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider transition-all duration-300 ${copiedId === selectedSecret.id
-                                                ? 'bg-neon-green/10 text-neon-green border border-neon-green/20'
-                                                : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5 border border-transparent'
-                                                }`}
-                                        >
-                                            {copiedId === selectedSecret.id ? (
-                                                <>
-                                                    <Check size={10} />
-                                                    Copied
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Copy size={10} />
-                                                    Copy
-                                                </>
-                                            )}
-                                        </button>
+                                                // Fallback: raw terminal view
+                                                return (
+                                                    <div className="terminal-block rounded-lg overflow-hidden">
+                                                        <div className="terminal-header !py-2">
+                                                            <div className="terminal-dot bg-accent-red/60" style={{ width: 6, height: 6 }} />
+                                                            <div className="terminal-dot bg-accent-amber/60" style={{ width: 6, height: 6 }} />
+                                                            <div className="terminal-dot bg-neon-green/60" style={{ width: 6, height: 6 }} />
+                                                            <span className="ml-2 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
+                                                                {secret.title} — plaintext
+                                                            </span>
+                                                        </div>
+                                                        <pre className="p-4 text-sm text-neon-green-glow/90 font-mono whitespace-pre-wrap break-words leading-relaxed select-text cursor-text">
+                                                            {secret.plaintext}
+                                                        </pre>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
-                                </div>
-
-                                {/* Status Badge */}
-                                <div className="px-4 py-2 border-b border-[#1e1e1e] flex items-center gap-2">
-                                    <ShieldCheck size={12} className="text-neon-green" />
-                                    <span className="text-[9px] text-neon-green font-mono uppercase tracking-wider">
-                                        Decrypted · In-memory only
-                                    </span>
-                                </div>
-
-                                {/* Content */}
-                                <pre className="p-4 text-sm text-neon-green-glow/80 font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto custom-scrollbar leading-relaxed">
-                                    {selectedSecret.plaintext}
-                                </pre>
-                            </div>
-                        ) : (
-                            <div className="glass rounded-xl border border-[#1e1e1e] border-dashed p-12 flex flex-col items-center justify-center text-center">
-                                <Terminal size={28} className="text-slate-800 mb-3" />
-                                <p className="text-slate-700 text-xs font-mono">
-                                    Click a secret to decrypt and view
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Mobile detail view */}
-            {selectedSecret && selectedSecret.plaintext !== null && (
-                <div className="lg:hidden terminal-block animate-fade-in">
-                    {/* Terminal Header */}
-                    <div className="terminal-header">
-                        <div className="terminal-dot bg-accent-red/80" />
-                        <div className="terminal-dot bg-accent-amber/80" />
-                        <div className="terminal-dot bg-neon-green/80" />
-                        <span className="ml-3 text-[10px] text-slate-600 font-mono uppercase tracking-wider flex-1 truncate">
-                            {selectedSecret.title}
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => openEditModal(selectedSecret)}
-                                className="p-1.5 rounded text-slate-600 hover:text-accent-blue transition-colors"
-                                title="Edit"
-                            >
-                                <Pencil size={14} />
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (selectedSecret.plaintext) {
-                                        copyToClipboard(selectedSecret.plaintext, selectedSecret.id);
-                                    }
-                                }}
-                                className={`p-1.5 rounded transition-all ${copiedId === selectedSecret.id
-                                    ? 'text-neon-green'
-                                    : 'text-slate-600 hover:text-neon-green'
-                                    }`}
-                            >
-                                {copiedId === selectedSecret.id ? (
-                                    <Check size={14} />
-                                ) : (
-                                    <Copy size={14} />
                                 )}
-                            </button>
-                            <button
-                                onClick={() => {
-                                    toggleDecrypt(selectedSecret);
-                                    setSelectedId(null);
-                                }}
-                                className="p-1.5 rounded text-slate-600 hover:text-neon-green transition-colors"
-                            >
-                                <EyeOff size={14} />
-                            </button>
-                        </div>
-                    </div>
-                    <pre className="p-4 text-sm text-neon-green-glow/80 font-mono whitespace-pre-wrap break-words max-h-[40vh] overflow-y-auto custom-scrollbar leading-relaxed">
-                        {selectedSecret.plaintext}
-                    </pre>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
