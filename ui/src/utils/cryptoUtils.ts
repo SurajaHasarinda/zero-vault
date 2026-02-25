@@ -108,7 +108,7 @@ async function forkKeys(baseKey: ArrayBuffer): Promise<{
         'raw',
         encKeyBuffer,
         { name: 'AES-GCM' },
-        false,
+        true, // Allow extractable so we can persist in sessionStorage across refreshes
         ['encrypt', 'decrypt']
     );
 
@@ -172,4 +172,26 @@ export async function decryptText(
     );
 
     return new TextDecoder().decode(plainBuffer);
+}
+
+/**
+ * Export the CryptoKey to a base64 string so it can be stored in sessionStorage.
+ */
+export async function exportKeyToBase64(key: CryptoKey): Promise<string> {
+    const raw = await crypto.subtle.exportKey('raw', key);
+    return arrayBufferToBase64(raw);
+}
+
+/**
+ * Import the base64 string back into a CryptoKey for AES-GCM.
+ */
+export async function importKeyFromBase64(base64: string): Promise<CryptoKey> {
+    const raw = base64ToArrayBuffer(base64);
+    return crypto.subtle.importKey(
+        'raw',
+        raw,
+        { name: 'AES-GCM' },
+        true,
+        ['encrypt', 'decrypt']
+    );
 }

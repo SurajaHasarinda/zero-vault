@@ -12,7 +12,16 @@ import SettingsPage from './pages/SettingsPage';
  * or if the encryption key is missing (e.g., page was refreshed).
  */
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { encryptionKey } = useCryptoKey();
+    const { encryptionKey, isLoadingKey } = useCryptoKey();
+
+    if (isLoadingKey) {
+        return (
+            <div className="min-h-screen bg-cyber-bg flex flex-col items-center justify-center p-6 text-neon-green">
+                <div className="animate-pulse-glow w-12 h-12 rounded-full border border-neon-green/30 border-t-neon-green animate-spin mb-4" />
+                <p className="text-xs font-mono uppercase tracking-wider">Restoring Session...</p>
+            </div>
+        );
+    }
 
     if (!api.isAuthenticated() || !encryptionKey) {
         // If token exists but key is gone (page refresh), force re-login
