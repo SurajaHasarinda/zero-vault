@@ -11,6 +11,7 @@ import {
     Lock,
     Activity,
     Terminal,
+    Sparkles,
 } from 'lucide-react';
 import { api } from '../api';
 import { useCryptoKey } from '../context/CryptoContext';
@@ -34,6 +35,7 @@ const Layout = ({ children }: LayoutProps) => {
 
     const navItems = [
         { name: 'Vault', path: '/', icon: <KeyRound size={18} /> },
+        { name: 'Generator', path: '/generator', icon: <Sparkles size={18} /> },
         { name: 'Settings', path: '/settings', icon: <Settings size={18} /> },
     ];
 
