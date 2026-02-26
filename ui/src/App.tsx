@@ -6,6 +6,8 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
+import GeneratorPage from './pages/GeneratorPage';
+import FilesPage from './pages/FilesPage';
 
 /**
  * ProtectedRoute — redirects to /login if not authenticated
@@ -59,6 +61,28 @@ function AppRoutes() {
                         <ProtectedRoute>
                             <Layout>
                                 <DashboardPage />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/generator"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <GeneratorPage />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/files"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <FilesPage />
                             </Layout>
                         </ProtectedRoute>
                     }

@@ -52,6 +52,37 @@ class SecretResponse(BaseModel):
         from_attributes = True
 
 
+# ─── Encrypted Files ─────────────────────────────────────────────────────────
+
+class EncryptedFileCreateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255, examples=["SSH Keys"])
+    filename: str = Field(..., min_length=1, max_length=255, examples=["id_rsa"])
+    encrypted_data: str = Field(
+        ...,
+        min_length=1,
+        description="Client-side encrypted file content (base64).",
+    )
+    file_size: int = Field(..., ge=0, description="Original file size in bytes.")
+    mime_type: str = Field(
+        default="application/octet-stream",
+        max_length=100,
+        description="MIME type of the original file.",
+    )
+
+
+class EncryptedFileResponse(BaseModel):
+    id: str | UUID
+    title: str
+    filename: str
+    encrypted_data: str
+    file_size: int
+    mime_type: str
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ─── Settings ────────────────────────────────────────────────────────────────
 
 class ChangePasswordRequest(BaseModel):
