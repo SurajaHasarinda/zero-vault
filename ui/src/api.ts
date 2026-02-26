@@ -19,6 +19,16 @@ export interface SecretEntry {
     updated_at: string;
 }
 
+export interface EncryptedFileEntry {
+    id: string;
+    title: string;
+    filename: string;
+    encrypted_data: string;
+    file_size: number;
+    mime_type: string;
+    updated_at: string;
+}
+
 // ─── API Client ──────────────────────────────────────────────────────────────
 
 class ApiClient {
@@ -81,6 +91,34 @@ class ApiClient {
 
     async deleteSecret(id: string): Promise<void> {
         await this.client.delete(`/secrets/${id}`);
+    }
+
+    // ─── Encrypted Files ─────────────────────────────────────────────────
+
+    async getFiles(): Promise<EncryptedFileEntry[]> {
+        const { data } = await this.client.get<EncryptedFileEntry[]>('/files');
+        return data;
+    }
+
+    async upsertFile(
+        title: string,
+        filename: string,
+        encryptedData: string,
+        fileSize: number,
+        mimeType: string
+    ): Promise<EncryptedFileEntry> {
+        const { data } = await this.client.post<EncryptedFileEntry>('/files', {
+            title,
+            filename,
+            encrypted_data: encryptedData,
+            file_size: fileSize,
+            mime_type: mimeType,
+        });
+        return data;
+    }
+
+    async deleteFile(id: string): Promise<void> {
+        await this.client.delete(`/files/${id}`);
     }
 
     // ─── Settings ────────────────────────────────────────────────────────

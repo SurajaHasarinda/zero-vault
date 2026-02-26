@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
-from app.controllers import auth, secrets, settings_controller
+from app.controllers import auth, secrets, settings_controller, files
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,6 +51,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(secrets.router)
 app.include_router(settings_controller.router)
+app.include_router(files.router)
 
 # Health check
 @app.get("/", tags=["Health"])

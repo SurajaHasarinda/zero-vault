@@ -4,6 +4,8 @@ from app.schemas.schemas import (  # noqa: F401
     TokenResponse,
     SecretCreateRequest,
     SecretResponse,
+    EncryptedFileCreateRequest,
+    EncryptedFileResponse,
     ChangePasswordRequest,
     ChangeUsernameRequest,
     MessageResponse,

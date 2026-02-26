@@ -195,3 +195,46 @@ export async function importKeyFromBase64(base64: string): Promise<CryptoKey> {
         ['encrypt', 'decrypt']
     );
 }
+
+// ─── Binary File Encryption ─────────────────────────────────────────────────
+
+/**
+ * Encrypt an ArrayBuffer (raw file bytes) using AES-256-GCM.
+ * Returns a base64 string of (12-byte IV || ciphertext).
+ */
+export async function encryptBinary(
+    data: ArrayBuffer,
+    key: CryptoKey
+): Promise<string> {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        data
+    );
+
+    const combined = new Uint8Array(iv.length + new Uint8Array(ciphertext).length);
+    combined.set(iv);
+    combined.set(new Uint8Array(ciphertext), iv.length);
+
+    return arrayBufferToBase64(combined.buffer);
+}
+
+/**
+ * Decrypt an AES-256-GCM encrypted blob (base64 string) back to raw bytes.
+ * Returns the original ArrayBuffer.
+ */
+export async function decryptBinary(
+    encryptedBlob: string,
+    key: CryptoKey
+): Promise<ArrayBuffer> {
+    const combined = new Uint8Array(base64ToArrayBuffer(encryptedBlob));
+    const iv = combined.slice(0, 12);
+    const ciphertext = combined.slice(12);
+
+    return crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        ciphertext
+    );
+}

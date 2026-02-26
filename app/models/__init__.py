@@ -1,1 +1,1 @@
-from app.models.models import User, Secret  # noqa: F401
+from app.models.models import User, Secret, EncryptedFile  # noqa: F401
