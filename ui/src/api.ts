@@ -121,6 +121,13 @@ class ApiClient {
         await this.client.delete(`/files/${id}`);
     }
 
+    async renameFileGroup(oldTitle: string, newTitle: string): Promise<void> {
+        await this.client.patch('/files/group-title', {
+            old_title: oldTitle,
+            new_title: newTitle,
+        });
+    }
+
     // ─── Settings ────────────────────────────────────────────────────────
 
     async changePassword(currentLoginHash: string, newLoginHash: string): Promise<void> {

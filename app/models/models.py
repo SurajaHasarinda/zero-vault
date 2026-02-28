@@ -7,7 +7,7 @@ Uses String-based UUIDs for cross-database compatibility (SQLite + PostgreSQL).
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Integer, Uuid
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from app.database import Base

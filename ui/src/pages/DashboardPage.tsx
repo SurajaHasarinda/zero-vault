@@ -216,11 +216,18 @@ const DashboardPage: React.FC = () => {
         setSaving(true);
         try {
             const blob = await encryptText(editContent, encryptionKey);
-            await api.upsertSecret(editTitle.trim(), blob);
+            const newTitle = editTitle.trim();
+
+            // If editing and title changed, delete old secret first
+            if (editingSecret && editingSecret.title !== newTitle) {
+                await api.deleteSecret(editingSecret.id);
+            }
+
+            await api.upsertSecret(newTitle, blob);
             showSnackbar(
                 editingSecret
-                    ? `Secret "${editTitle.trim()}" updated`
-                    : `Secret "${editTitle.trim()}" encrypted & stored`,
+                    ? `Secret "${newTitle}" updated`
+                    : `Secret "${newTitle}" encrypted & stored`,
                 'success'
             );
             setShowAddModal(false);
@@ -478,8 +485,8 @@ const DashboardPage: React.FC = () => {
                                                                         </div>
                                                                         <div className="px-3 pb-2.5">
                                                                             <span className={`text-sm font-mono break-all select-text cursor-text transition-all duration-200 ${isRevealed
-                                                                                    ? 'text-neon-green-glow/90'
-                                                                                    : 'text-slate-600 select-none'
+                                                                                ? 'text-neon-green-glow/90'
+                                                                                : 'text-slate-600 select-none'
                                                                                 }`}>
                                                                                 {isRevealed ? value : maskValue(value)}
                                                                             </span>
@@ -556,11 +563,8 @@ const DashboardPage: React.FC = () => {
                                     value={editTitle}
                                     onChange={(e) => setEditTitle(e.target.value)}
                                     placeholder="e.g., GitHub SSH Key, AWS Credentials"
-                                    className={`w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white px-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono ${editingSecret ? 'opacity-60 cursor-not-allowed' : ''
-                                        }`}
-                                    autoFocus={!editingSecret}
-                                    readOnly={!!editingSecret}
-                                    title={editingSecret ? 'Title cannot be changed during edit' : ''}
+                                    className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white px-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono"
+                                    autoFocus
                                 />
                             </div>
 

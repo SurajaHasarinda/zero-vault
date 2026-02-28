@@ -3,7 +3,6 @@ Encrypted Files service — business logic for CRUD operations on encrypted file
 """
 
 from datetime import datetime, timezone
-from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -11,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.models.models import EncryptedFile
 
 
-def get_user_files(user_id: UUID, db: Session) -> list[EncryptedFile]:
+def get_user_files(user_id: str, db: Session) -> list[EncryptedFile]:
     """
     Retrieve all encrypted files belonging to a user, ordered by title then filename.
     """
@@ -24,7 +23,7 @@ def get_user_files(user_id: UUID, db: Session) -> list[EncryptedFile]:
 
 
 def upsert_file(
-    user_id: UUID,
+    user_id: str,
     title: str,
     filename: str,
     encrypted_data: str,
@@ -71,7 +70,7 @@ def upsert_file(
     return enc_file
 
 
-def delete_file(file_id: UUID, user_id: UUID, db: Session) -> None:
+def delete_file(file_id: str, user_id: str, db: Session) -> None:
     """
     Delete an encrypted file by its ID, ensuring it belongs to the given user.
 
@@ -91,3 +90,55 @@ def delete_file(file_id: UUID, user_id: UUID, db: Session) -> None:
 
     db.delete(enc_file)
     db.commit()
+
+
+def rename_group_title(
+    user_id: str, old_title: str, new_title: str, db: Session
+) -> int:
+    """
+    Rename all files belonging to a user from ``old_title`` to ``new_title``.
+
+    Returns the number of updated rows.
+
+    Raises:
+        HTTPException 404 if no files exist with the old title.
+        HTTPException 409 if another group already uses the new title.
+    """
+    files_with_old = (
+        db.query(EncryptedFile)
+        .filter(
+            EncryptedFile.user_id == user_id,
+            EncryptedFile.title == old_title,
+        )
+        .all()
+    )
+
+    if not files_with_old:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'No file group found with title "{old_title}".',
+        )
+
+    # Check if new_title already exists (and is different from old_title)
+    if old_title != new_title:
+        conflict = (
+            db.query(EncryptedFile)
+            .filter(
+                EncryptedFile.user_id == user_id,
+                EncryptedFile.title == new_title,
+            )
+            .first()
+        )
+        if conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f'A file group with title "{new_title}" already exists.',
+            )
+
+    now = datetime.now(timezone.utc)
+    for f in files_with_old:
+        f.title = new_title
+        f.updated_at = now
+
+    db.commit()
+    return len(files_with_old)

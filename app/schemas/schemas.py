@@ -3,8 +3,6 @@ Pydantic schemas for request validation and response serialization.
 """
 
 from datetime import datetime
-from typing import Optional
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -43,7 +41,7 @@ class SecretCreateRequest(BaseModel):
 
 
 class SecretResponse(BaseModel):
-    id: str | UUID
+    id: str
     title: str
     encrypted_blob: str
     updated_at: datetime
@@ -71,7 +69,7 @@ class EncryptedFileCreateRequest(BaseModel):
 
 
 class EncryptedFileResponse(BaseModel):
-    id: str | UUID
+    id: str
     title: str
     filename: str
     encrypted_data: str
@@ -81,6 +79,11 @@ class EncryptedFileResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class FileGroupRenameRequest(BaseModel):
+    old_title: str = Field(..., min_length=1, max_length=255, examples=["SSH Keys"])
+    new_title: str = Field(..., min_length=1, max_length=255, examples=["Server Keys"])
 
 
 # ─── Settings ────────────────────────────────────────────────────────────────

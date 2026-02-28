@@ -3,7 +3,6 @@ JWT utilities and the ``get_current_user`` FastAPI dependency.
 """
 
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -37,7 +36,7 @@ def verify_login_hash(plain_login_hash: str, hashed: str) -> bool:
 
 # ─── JWT helpers ──────────────────────────────────────────────────────────────
 
-def create_access_token(user_id: UUID) -> str:
+def create_access_token(user_id: str) -> str:
     """Create a signed JWT containing the user's UUID as the ``sub`` claim."""
     now = datetime.now(timezone.utc)
     payload = {

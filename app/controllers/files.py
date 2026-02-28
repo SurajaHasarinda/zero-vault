@@ -13,6 +13,7 @@ from app.models.models import User
 from app.schemas.schemas import (
     EncryptedFileCreateRequest,
     EncryptedFileResponse,
+    FileGroupRenameRequest,
     MessageResponse,
 )
 from app.dependencies.auth import get_current_user
@@ -20,6 +21,7 @@ from app.services.files_service import (
     get_user_files,
     upsert_file,
     delete_file,
+    rename_group_title,
 )
 
 router = APIRouter(prefix="/files", tags=["Encrypted Files"])
@@ -87,5 +89,27 @@ def remove_file(
 
     Only the **owner** of the file can delete it.
     """
-    delete_file(file_id, current_user.id, db)
+    delete_file(str(file_id), current_user.id, db)
     return MessageResponse(message="File deleted successfully.")
+
+
+@router.patch(
+    "/group-title",
+    response_model=MessageResponse,
+    summary="Rename a file group title",
+)
+def rename_group(
+    payload: FileGroupRenameRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Rename all files in a group from **old_title** to **new_title**.
+    """
+    count = rename_group_title(
+        user_id=current_user.id,
+        old_title=payload.old_title,
+        new_title=payload.new_title,
+        db=db,
+    )
+    return MessageResponse(message=f"Renamed {count} file(s) to \"{payload.new_title}\".")
