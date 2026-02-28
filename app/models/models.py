@@ -67,9 +67,9 @@ class Secret(Base):
 class EncryptedFile(Base):
     __tablename__ = "encrypted_files"
 
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     title = Column(String(255), nullable=False)            # group name, e.g. "SSH Keys"
     filename = Column(String(255), nullable=False)
