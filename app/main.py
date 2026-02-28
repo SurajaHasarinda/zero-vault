@@ -55,6 +55,6 @@ app.include_router(settings_controller.router)
 app.include_router(files.router)
 
 # Health check
-@app.get("/", tags=["Health"])
+@app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok", "service": "Zero-Knowledge Secret Manager"}
