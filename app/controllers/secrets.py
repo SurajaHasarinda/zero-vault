@@ -75,5 +75,5 @@ def remove_secret(
 
     Only the **owner** of the secret can delete it.
     """
-    delete_secret(secret_id, current_user.id, db)
+    delete_secret(str(secret_id), current_user.id, db)
     return MessageResponse(message="Secret deleted successfully.")

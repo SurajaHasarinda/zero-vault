@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
+from app.models import User, Secret, EncryptedFile
 from app.controllers import auth, secrets, settings_controller, files
 
 logging.basicConfig(level=logging.INFO)

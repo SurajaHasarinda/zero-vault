@@ -18,6 +18,8 @@ import {
     ChevronDown,
     FolderOpen,
     Plus,
+    Pencil,
+    Check,
 } from 'lucide-react';
 import { api, EncryptedFileEntry } from '../api';
 import { useCryptoKey } from '../context/CryptoContext';
@@ -110,6 +112,12 @@ const FilesPage: React.FC = () => {
     // Drag & drop state
     const [isDragging, setIsDragging] = useState(false);
 
+    // Inline title editing
+    const [editingGroupTitle, setEditingGroupTitle] = useState<string | null>(null);
+    const [editTitleValue, setEditTitleValue] = useState('');
+    const [renamingGroup, setRenamingGroup] = useState(false);
+    const editTitleInputRef = useRef<HTMLInputElement>(null);
+
     // Snackbar
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
@@ -174,6 +182,54 @@ const FilesPage: React.FC = () => {
             else next.add(title);
             return next;
         });
+    };
+
+    // ─── Rename group title ─────────────────────────────────────────────
+
+    const startEditingTitle = (title: string) => {
+        setEditingGroupTitle(title);
+        setEditTitleValue(title);
+        setTimeout(() => editTitleInputRef.current?.focus(), 0);
+    };
+
+    const cancelEditingTitle = () => {
+        setEditingGroupTitle(null);
+        setEditTitleValue('');
+    };
+
+    const handleRenameGroup = async () => {
+        if (!editingGroupTitle || !editTitleValue.trim() || renamingGroup) return;
+        const newTitle = editTitleValue.trim();
+        if (newTitle === editingGroupTitle) {
+            cancelEditingTitle();
+            return;
+        }
+
+        setRenamingGroup(true);
+        try {
+            await api.renameFileGroup(editingGroupTitle, newTitle);
+            showSnackbar(`Group renamed to "${newTitle}"`, 'success');
+
+            // Update expanded groups tracking
+            setExpandedGroups(prev => {
+                const next = new Set(prev);
+                if (next.has(editingGroupTitle)) {
+                    next.delete(editingGroupTitle);
+                    next.add(newTitle);
+                }
+                return next;
+            });
+
+            cancelEditingTitle();
+            loadFiles();
+        } catch (err: any) {
+            showSnackbar(
+                err.response?.data?.detail || 'Failed to rename group',
+                'error'
+            );
+        } finally {
+            setRenamingGroup(false);
+        }
     };
 
     // ─── Stage files for upload ──────────────────────────────────────────
@@ -379,13 +435,13 @@ const FilesPage: React.FC = () => {
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                     className={`flex flex-col items-center justify-center py-16 text-center cursor-pointer rounded-xl border-2 border-dashed transition-all duration-300 ${isDragging
-                            ? 'border-accent-blue/60 bg-accent-blue/5'
-                            : 'border-[#1e1e1e] hover:border-accent-blue/30 hover:bg-accent-blue/[0.02]'
+                        ? 'border-accent-blue/60 bg-accent-blue/5'
+                        : 'border-[#1e1e1e] hover:border-accent-blue/30 hover:bg-accent-blue/[0.02]'
                         }`}
                 >
                     <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${isDragging
-                            ? 'bg-accent-blue/10 border border-accent-blue/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
-                            : 'bg-[#111111] border border-[#1e1e1e]'
+                        ? 'bg-accent-blue/10 border border-accent-blue/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
+                        : 'bg-[#111111] border border-[#1e1e1e]'
                         }`}>
                         <Upload size={28} className={isDragging ? 'text-accent-blue' : 'text-slate-700'} />
                     </div>
@@ -438,8 +494,8 @@ const FilesPage: React.FC = () => {
                             <div
                                 key={group.title}
                                 className={`glass rounded-xl transition-all duration-400 relative overflow-hidden ${isExpanded
-                                        ? 'cyber-border-active ring-1 ring-accent-blue/10'
-                                        : 'cyber-border hover:border-accent-blue/20'
+                                    ? 'cyber-border-active ring-1 ring-accent-blue/10'
+                                    : 'cyber-border hover:border-accent-blue/20'
                                     }`}
                             >
                                 {/* Top glow when expanded */}
@@ -450,21 +506,70 @@ const FilesPage: React.FC = () => {
                                 {/* Group Header */}
                                 <div
                                     className="flex items-center justify-between gap-3 p-4 cursor-pointer"
-                                    onClick={() => toggleGroup(group.title)}
+                                    onClick={() => editingGroupTitle !== group.title && toggleGroup(group.title)}
                                 >
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div
                                             className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${isExpanded
-                                                    ? 'bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shadow-[0_0_12px_rgba(59,130,246,0.15)]'
-                                                    : 'bg-[#141414] text-slate-600 border border-[#1e1e1e]'
+                                                ? 'bg-accent-blue/10 text-accent-blue border border-accent-blue/20 shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+                                                : 'bg-[#141414] text-slate-600 border border-[#1e1e1e]'
                                                 }`}
                                         >
                                             <FolderOpen size={16} />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="text-white font-semibold text-sm truncate">
-                                                {group.title}
-                                            </h3>
+                                            {editingGroupTitle === group.title ? (
+                                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                    <input
+                                                        ref={editTitleInputRef}
+                                                        type="text"
+                                                        value={editTitleValue}
+                                                        onChange={(e) => setEditTitleValue(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleRenameGroup();
+                                                            if (e.key === 'Escape') cancelEditingTitle();
+                                                        }}
+                                                        className="bg-[#0a0a0a] border border-accent-blue/30 text-white px-2.5 py-1 rounded-md text-sm font-semibold focus:outline-none focus:border-accent-blue/60 transition-all w-full max-w-[220px]"
+                                                        disabled={renamingGroup}
+                                                    />
+                                                    <button
+                                                        onClick={handleRenameGroup}
+                                                        disabled={renamingGroup || !editTitleValue.trim()}
+                                                        className="p-1 rounded-md text-accent-blue hover:bg-accent-blue/10 transition-all disabled:opacity-50"
+                                                        title="Save"
+                                                    >
+                                                        {renamingGroup ? (
+                                                            <Loader2 size={13} className="animate-spin" />
+                                                        ) : (
+                                                            <Check size={13} />
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelEditingTitle}
+                                                        disabled={renamingGroup}
+                                                        className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+                                                        title="Cancel"
+                                                    >
+                                                        <X size={13} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-white font-semibold text-sm truncate">
+                                                        {group.title}
+                                                    </h3>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            startEditingTitle(group.title);
+                                                        }}
+                                                        className="p-1 rounded-md text-slate-700 hover:text-accent-blue hover:bg-accent-blue/5 transition-all"
+                                                        title="Rename group"
+                                                    >
+                                                        <Pencil size={11} />
+                                                    </button>
+                                                </div>
+                                            )}
                                             <div className="flex items-center gap-3 mt-0.5">
                                                 <span className="text-[10px] text-slate-600 font-mono">
                                                     {group.files.length} file{group.files.length !== 1 ? 's' : ''}
@@ -485,8 +590,8 @@ const FilesPage: React.FC = () => {
                                             toggleGroup(group.title);
                                         }}
                                         className={`p-1.5 rounded-md transition-all duration-300 ${isExpanded
-                                                ? 'text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20'
-                                                : 'text-slate-600 hover:text-accent-blue hover:bg-accent-blue/5'
+                                            ? 'text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20'
+                                            : 'text-slate-600 hover:text-accent-blue hover:bg-accent-blue/5'
                                             }`}
                                     >
                                         <ChevronDown size={14} className={`transition-transform duration-300 ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
@@ -643,8 +748,8 @@ const FilesPage: React.FC = () => {
                                                 key={t}
                                                 onClick={() => setUploadTitle(t)}
                                                 className={`px-2.5 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all duration-200 border ${uploadTitle === t
-                                                        ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/30'
-                                                        : 'bg-[#111111] text-slate-500 border-[#1e1e1e] hover:border-accent-blue/20 hover:text-slate-400'
+                                                    ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/30'
+                                                    : 'bg-[#111111] text-slate-500 border-[#1e1e1e] hover:border-accent-blue/20 hover:text-slate-400'
                                                     }`}
                                             >
                                                 {t}

@@ -3,7 +3,6 @@ Secrets service — business logic for CRUD operations on secrets.
 """
 
 from datetime import datetime, timezone
-from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -11,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.models.models import Secret
 
 
-def get_user_secrets(user_id: UUID, db: Session) -> list[Secret]:
+def get_user_secrets(user_id: str, db: Session) -> list[Secret]:
     """
     Retrieve all secrets belonging to a user, ordered by most recently updated.
     """
@@ -24,7 +23,7 @@ def get_user_secrets(user_id: UUID, db: Session) -> list[Secret]:
 
 
 def upsert_secret(
-    user_id: UUID,
+    user_id: str,
     title: str,
     encrypted_blob: str,
     db: Session,
@@ -62,7 +61,7 @@ def upsert_secret(
     return secret
 
 
-def delete_secret(secret_id: UUID, user_id: UUID, db: Session) -> None:
+def delete_secret(secret_id: str, user_id: str, db: Session) -> None:
     """
     Delete a secret by its ID, ensuring it belongs to the given user.
 
