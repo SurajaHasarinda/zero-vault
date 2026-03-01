@@ -52,12 +52,14 @@ app.add_middleware(
 )
 
 # Routers (Mount API routes under /api so they don't conflict with frontend routing)
-# Note: For now we'll leave them at root since the frontend might be expecting them there,
-# but we have to be careful about path conflicts. 
-app.include_router(auth.router)
-app.include_router(secrets.router)
-app.include_router(settings_controller.router)
-app.include_router(files.router)
+from fastapi import APIRouter
+api_router = APIRouter(prefix="/api")
+api_router.include_router(auth.router)
+api_router.include_router(secrets.router)
+api_router.include_router(settings_controller.router)
+api_router.include_router(files.router)
+
+app.include_router(api_router)
 
 # Health check
 @app.get("/health", tags=["Health"])
