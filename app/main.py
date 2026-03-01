@@ -73,13 +73,21 @@ if os.path.isdir(STATIC_DIR):
     # Mount the /assets folder (which Vite generates)
     app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
     
-    # Catch-all route to serve the SPA's index.html
+    from fastapi.responses import HTMLResponse, FileResponse
+    
+    # Catch-all route to serve the SPA's index.html and root static files
     @app.get("/{full_path:path}", response_class=HTMLResponse, include_in_schema=False)
     async def serve_spa(request: Request, full_path: str):
         # Ignore API routes that somehow fell through
         if full_path.startswith("api/") or full_path in ["health", "docs", "openapi.json", "redoc"]:
             return HTMLResponse(status_code=404, content="Not Found")
             
+        # Check if it's an actual file in the static directory (e.g. favicon.ico, zero-vault.svg)
+        file_path = os.path.join(STATIC_DIR, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        # Otherwise, serve the SPA index.html
         index_file = os.path.join(STATIC_DIR, "index.html")
         if os.path.exists(index_file):
             with open(index_file, 'r', encoding='utf-8') as f:
