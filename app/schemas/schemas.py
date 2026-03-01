@@ -7,7 +7,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-# ─── Auth ────────────────────────────────────────────────────────────────────
 
 class UserRegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=150, examples=["alice"])
@@ -29,7 +28,6 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-# ─── Secrets ─────────────────────────────────────────────────────────────────
 
 class SecretCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255, examples=["GitHub SSH Key"])
@@ -50,7 +48,6 @@ class SecretResponse(BaseModel):
         from_attributes = True
 
 
-# ─── Encrypted Files ─────────────────────────────────────────────────────────
 
 class EncryptedFileCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255, examples=["SSH Keys"])
@@ -86,7 +83,6 @@ class FileGroupRenameRequest(BaseModel):
     new_title: str = Field(..., min_length=1, max_length=255, examples=["Server Keys"])
 
 
-# ─── Settings ────────────────────────────────────────────────────────────────
 
 class ChangePasswordRequest(BaseModel):
     current_login_hash: str = Field(..., min_length=8)
@@ -98,7 +94,6 @@ class ChangeUsernameRequest(BaseModel):
     current_login_hash: str = Field(..., min_length=8)
 
 
-# ─── Generic ─────────────────────────────────────────────────────────────────
 
 class MessageResponse(BaseModel):
     message: str

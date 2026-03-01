@@ -19,7 +19,6 @@ from app.controllers import auth, secrets, settings_controller, files
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Lifespan: create tables on startup
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Create database tables on startup."""
@@ -31,7 +30,6 @@ async def lifespan(_app: FastAPI):
 
     yield
 
-# App instance
 app = FastAPI(
     title="Zero-Knowledge Secret Manager",
     description=(
@@ -42,7 +40,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -51,7 +48,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers (Mount API routes under /api so they don't conflict with frontend routing)
 from fastapi import APIRouter
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
@@ -61,33 +57,26 @@ api_router.include_router(files.router)
 
 app.include_router(api_router)
 
-# Health check
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok", "service": "Zero-Knowledge Secret Manager"}
 
-# Serve Frontend
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "static")
 
 if os.path.isdir(STATIC_DIR):
-    # Mount the /assets folder (which Vite generates)
     app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
     
     from fastapi.responses import HTMLResponse, FileResponse
     
-    # Catch-all route to serve the SPA's index.html and root static files
     @app.get("/{full_path:path}", response_class=HTMLResponse, include_in_schema=False)
     async def serve_spa(request: Request, full_path: str):
-        # Ignore API routes that somehow fell through
         if full_path.startswith("api/") or full_path in ["health", "docs", "openapi.json", "redoc"]:
             return HTMLResponse(status_code=404, content="Not Found")
             
-        # Check if it's an actual file in the static directory (e.g. favicon.ico, zero-vault.svg)
         file_path = os.path.join(STATIC_DIR, full_path)
         if os.path.isfile(file_path):
             return FileResponse(file_path)
             
-        # Otherwise, serve the SPA index.html
         index_file = os.path.join(STATIC_DIR, "index.html")
         if os.path.exists(index_file):
             with open(index_file, 'r', encoding='utf-8') as f:

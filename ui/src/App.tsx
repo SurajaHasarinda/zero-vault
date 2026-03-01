@@ -26,7 +26,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     }
 
     if (!api.isAuthenticated() || !encryptionKey) {
-        // If token exists but key is gone (page refresh), force re-login
         if (api.isAuthenticated() && !encryptionKey) {
             api.logout();
         }

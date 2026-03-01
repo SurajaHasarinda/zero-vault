@@ -29,7 +29,6 @@ class User(Base):
         nullable=False,
     )
 
-    # Relationships
     secrets = relationship(
         "Secret", back_populates="owner", cascade="all, delete-orphan"
     )
@@ -57,7 +56,6 @@ class Secret(Base):
         nullable=False,
     )
 
-    # Relationship
     owner = relationship("User", back_populates="secrets")
 
     def __repr__(self) -> str:
@@ -83,7 +81,6 @@ class EncryptedFile(Base):
         nullable=False,
     )
 
-    # Relationship
     owner = relationship("User", back_populates="files")
 
     def __repr__(self) -> str:

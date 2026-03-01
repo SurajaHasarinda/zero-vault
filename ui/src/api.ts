@@ -10,7 +10,6 @@ import axios, { AxiosInstance } from 'axios';
 const TOKEN_KEY = 'vault_token';
 const USERNAME_KEY = 'vault_user';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SecretEntry {
     id: string;
@@ -29,7 +28,6 @@ export interface EncryptedFileEntry {
     updated_at: string;
 }
 
-// ─── API Client ──────────────────────────────────────────────────────────────
 
 class ApiClient {
     private client: AxiosInstance;
@@ -50,7 +48,6 @@ class ApiClient {
         });
     }
 
-    // ─── Auth ────────────────────────────────────────────────────────────
 
     async register(username: string, loginHash: string): Promise<void> {
         await this.client.post('/auth/register', {
@@ -74,7 +71,6 @@ class ApiClient {
         sessionStorage.removeItem(USERNAME_KEY);
     }
 
-    // ─── Secrets ─────────────────────────────────────────────────────────
 
     async getSecrets(): Promise<SecretEntry[]> {
         const { data } = await this.client.get<SecretEntry[]>('/secrets');
@@ -93,7 +89,6 @@ class ApiClient {
         await this.client.delete(`/secrets/${id}`);
     }
 
-    // ─── Encrypted Files ─────────────────────────────────────────────────
 
     async getFiles(): Promise<EncryptedFileEntry[]> {
         const { data } = await this.client.get<EncryptedFileEntry[]>('/files');
@@ -128,7 +123,6 @@ class ApiClient {
         });
     }
 
-    // ─── Settings ────────────────────────────────────────────────────────
 
     async changePassword(currentLoginHash: string, newLoginHash: string): Promise<void> {
         await this.client.put('/settings/password', {
@@ -144,7 +138,6 @@ class ApiClient {
         });
     }
 
-    // ─── Token helpers ───────────────────────────────────────────────────
 
     isAuthenticated(): boolean {
         return !!this.getToken();

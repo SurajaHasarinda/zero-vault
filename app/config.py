@@ -7,15 +7,12 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Single Database URL (e.g. PostgreSQL)
     DATABASE_URL: str
 
-    # JWT
     JWT_SECRET_KEY: str = "change-me-to-a-random-secret-key"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_MINUTES: int = 60
 
-    # CORS – comma-separated allowed origins
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     @property
