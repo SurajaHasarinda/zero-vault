@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zerovault-config
+  namespace: zero-vault
+  labels:
+    app: zero-vault
+data:
+  JWT_ALGORITHM: "${JWT_ALGORITHM:-HS256}"
+  JWT_EXPIRATION_MINUTES: "${JWT_EXPIRATION_MINUTES:-60}"
+  CORS_ORIGINS: "${CORS_ORIGINS:-*}"
+  TZ: "${TZ:-Asia/Colombo}"

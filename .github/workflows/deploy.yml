@@ -1,0 +1,73 @@
+name: Deploy to K3s
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types:
+      - completed
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  K3S_HOST: ${{ secrets.K3S_TAILSCALE_IP }}
+  K3S_USER: ${{ secrets.K3S_USER }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.K3S_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.K3S_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Substitute secrets into K8s manifests
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        run: |
+          envsubst < k8s/secret.yml > k8s/secret-rendered.yml
+          envsubst < k8s/configmap.yml > k8s/configmap-rendered.yml
+
+      - name: Copy manifests to K3s node
+        run: |
+          scp k8s/namespace.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/
+          scp k8s/secret-rendered.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/secret.yml
+          scp k8s/configmap-rendered.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/configmap.yml
+          scp k8s/deployment.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/
+          scp k8s/service.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/
+
+      - name: Deploy to K3s
+        run: |
+          ssh ${{ env.K3S_USER }}@${{ env.K3S_HOST }} << 'EOF'
+            sudo k3s kubectl apply -f /tmp/namespace.yml
+            sudo k3s kubectl apply -f /tmp/configmap.yml
+            sudo k3s kubectl apply -f /tmp/secret.yml
+            sudo k3s kubectl apply -f /tmp/deployment.yml
+            sudo k3s kubectl apply -f /tmp/service.yml
+
+            # Force pull the latest image
+            sudo k3s kubectl rollout restart deployment/zero-vault -n zero-vault
+
+            # Wait for rollout to complete
+            sudo k3s kubectl rollout status deployment/zero-vault -n zero-vault --timeout=120s
+
+            # Cleanup temp files
+            rm -f /tmp/namespace.yml /tmp/configmap.yml /tmp/secret.yml /tmp/deployment.yml /tmp/service.yml
+          EOF
