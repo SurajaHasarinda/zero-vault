@@ -31,11 +31,17 @@ jobs:
           tags: tag:ci
 
       - name: Set up SSH key
+        env:
+          SSH_KEY: ${{ secrets.K3S_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.K3S_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.K3S_HOST }} >> ~/.ssh/known_hosts
+          cat << 'EOF' > ~/.ssh/config
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          EOF
 
       - name: Substitute secrets into K8s manifests
         env:
