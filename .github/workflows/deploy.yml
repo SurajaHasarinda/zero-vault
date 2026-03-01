@@ -49,13 +49,12 @@ jobs:
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
         run: |
           envsubst < k8s/secret.yml > k8s/secret-rendered.yml
-          envsubst < k8s/configmap.yml > k8s/configmap-rendered.yml
 
       - name: Copy manifests to K3s node
         run: |
           scp k8s/namespace.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/
           scp k8s/secret-rendered.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/secret.yml
-          scp k8s/configmap-rendered.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/configmap.yml
+          scp k8s/configmap.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/configmap.yml
           scp k8s/deployment.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/
           scp k8s/service.yml ${{ env.K3S_USER }}@${{ env.K3S_HOST }}:/tmp/
 
