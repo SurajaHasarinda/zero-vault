@@ -15,9 +15,13 @@ import {
     CaseLower,
     Minus,
     Plus,
-    Info,
+    Save,
 } from 'lucide-react';
+import { api } from '../api';
+import { useCryptoKey } from '../context/CryptoContext';
+import { encryptText } from '../utils/cryptoUtils';
 import Snackbar, { SnackbarType } from '../components/common/Snackbar';
+import SecretModal from '../components/common/SecretModal';
 
 const WORDLIST: string[] = [
     'acid', 'acorn', 'acre', 'alpha', 'amber', 'anchor', 'angel', 'anvil',
@@ -191,6 +195,12 @@ const GeneratorPage: React.FC = () => {
     const [capitalize, setCapitalize] = useState(true);
     const [includeNumber, setIncludeNumber] = useState(true);
 
+    const { encryptionKey } = useCryptoKey();
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [saveTitle, setSaveTitle] = useState('');
+    const [saveContent, setSaveContent] = useState('');
+    const [saving, setSaving] = useState(false);
+
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -232,6 +242,42 @@ const GeneratorPage: React.FC = () => {
         }
     };
 
+    const openSaveModal = () => {
+        if (!password) return;
+        setSaveTitle('');
+        setSaveContent(`PASSWORD=${password}`);
+        setShowSaveModal(true);
+    };
+
+    const closeSaveModal = () => {
+        if (saving) return;
+        setShowSaveModal(false);
+        setSaveTitle('');
+        setSaveContent('');
+    };
+
+    const handleSaveSecret = async () => {
+        if (!encryptionKey || !saveTitle.trim() || !saveContent.trim()) return;
+
+        setSaving(true);
+        try {
+            const title = saveTitle.trim();
+            const blob = await encryptText(saveContent, encryptionKey);
+            await api.upsertSecret(title, blob);
+            showSnackbar(`"${title}" saved`, 'success');
+            setShowSaveModal(false);
+            setSaveTitle('');
+            setSaveContent('');
+        } catch (err: any) {
+            showSnackbar(
+                err.response?.data?.detail || 'Failed to save secret',
+                'error'
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const strength = calculateStrength(password);
 
     return (
@@ -245,9 +291,6 @@ const GeneratorPage: React.FC = () => {
                         </div>
                         Password Generator
                     </h1>
-                    <p className="text-slate-600 text-xs mt-1.5 font-mono uppercase tracking-wider">
-                        Generate secure &amp; memorable passwords · Crypto-random
-                    </p>
                 </div>
             </div>
 
@@ -287,9 +330,6 @@ const GeneratorPage: React.FC = () => {
                             <div className="terminal-dot bg-accent-red/60 !w-1.5 !h-1.5" />
                             <div className="terminal-dot bg-accent-amber/60 !w-1.5 !h-1.5" />
                             <div className="terminal-dot bg-neon-green/60 !w-1.5 !h-1.5" />
-                            <span className="ml-2 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
-                                generated password
-                            </span>
                         </div>
                         <div className="p-4 flex items-center justify-between gap-3 min-h-[56px]">
                             <p
@@ -321,6 +361,15 @@ const GeneratorPage: React.FC = () => {
                                 >
                                     {copied ? <Check size={16} /> : <Copy size={16} />}
                                 </button>
+                                <button
+                                    onClick={openSaveModal}
+                                    disabled={!password}
+                                    className="p-2 rounded-lg text-slate-600 hover:text-neon-green hover:bg-neon-green/5 transition-all duration-300 disabled:opacity-50"
+                                    title="Save to vault"
+                                    id="btn-save-password"
+                                >
+                                    <Save size={16} />
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -335,12 +384,6 @@ const GeneratorPage: React.FC = () => {
                                     style={{ color: strength.color }}
                                 >
                                     {strength.label}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <Info size={10} className="text-slate-700" />
-                                <span className="text-[10px] text-slate-700 font-mono">
-                                    ~{strength.entropy} bits of entropy
                                 </span>
                             </div>
                         </div>
@@ -367,18 +410,6 @@ const GeneratorPage: React.FC = () => {
 
             {/* Options Panel */}
             <div className="glass rounded-xl cyber-border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e1e1e] bg-[#0c0c0c]">
-                    <div className="flex items-center gap-2">
-                        <Sliders size={12} className="text-neon-green" />
-                        <span className="text-[10px] text-neon-green font-mono uppercase tracking-wider font-semibold">
-                            Configuration
-                        </span>
-                    </div>
-                    <span className="text-[9px] text-slate-700 font-mono uppercase tracking-wider">
-                        {mode === 'random' ? 'Random Mode' : 'Passphrase Mode'}
-                    </span>
-                </div>
-
                 <div className="p-4 space-y-5">
                     {mode === 'random' ? (
                         <>
@@ -419,7 +450,7 @@ const GeneratorPage: React.FC = () => {
                                     style={{
                                         height: '4px',
                                         background: `linear-gradient(to right, #10b981 ${((length - 6) / (64 - 6)) * 100}%, #1e1e1e ${((length - 6) / (64 - 6)) * 100}%)`,
-                                        borderRadius: '999px',
+                                        borderRadius: '2px',
                                     }}
                                 />
                                 <div className="flex justify-between">
@@ -507,7 +538,7 @@ const GeneratorPage: React.FC = () => {
                                     style={{
                                         height: '4px',
                                         background: `linear-gradient(to right, #10b981 ${((wordCount - 3) / (8 - 3)) * 100}%, #1e1e1e ${((wordCount - 3) / (8 - 3)) * 100}%)`,
-                                        borderRadius: '999px',
+                                        borderRadius: '2px',
                                     }}
                                 />
                                 <div className="flex justify-between">
@@ -600,17 +631,20 @@ const GeneratorPage: React.FC = () => {
                 id="btn-generate"
             >
                 <Zap size={16} />
-                Generate New Password
+                Generate Password
             </button>
 
-            {/* Security Note */}
-            <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-neon-green/[0.03] border border-neon-green/10">
-                <Lock size={14} className="text-neon-green/40 flex-shrink-0 mt-0.5" />
-                <p className="text-[10px] text-slate-600 font-mono leading-relaxed">
-                    Passwords are generated locally using the Web Crypto API (<code className="text-neon-green/60">crypto.getRandomValues</code>).
-                    Nothing is transmitted or stored — generation happens entirely in your browser.
-                </p>
-            </div>
+            {/* Save Secret Modal */}
+            <SecretModal
+                isOpen={showSaveModal}
+                title={saveTitle}
+                content={saveContent}
+                saving={saving}
+                onTitleChange={setSaveTitle}
+                onContentChange={setSaveContent}
+                onSave={handleSaveSecret}
+                onClose={closeSaveModal}
+            />
 
             {/* Snackbar */}
             <Snackbar

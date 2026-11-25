@@ -33,15 +33,15 @@ const SettingsPage: React.FC = () => {
         setPwMessage(null);
 
         if (newPassword !== confirmPassword) {
-            setPwMessage({ type: 'error', text: 'New passwords do not match.' });
+            setPwMessage({ type: 'error', text: 'New passwords do not match' });
             return;
         }
         if (newPassword.length < 8) {
-            setPwMessage({ type: 'error', text: 'Password must be at least 8 characters.' });
+            setPwMessage({ type: 'error', text: 'Password must be at least 8 characters' });
             return;
         }
         if (!username || !encryptionKey || !encryptedDek) {
-            setPwMessage({ type: 'error', text: 'Vault is locked. Sign in again.' });
+            setPwMessage({ type: 'error', text: 'Session expired. Please sign in again.' });
             return;
         }
 
@@ -57,14 +57,14 @@ const SettingsPage: React.FC = () => {
 
             setSession(encryptionKey, newEncryptedDek, username);
 
-            setPwMessage({ type: 'success', text: 'Password changed. Your vault stays unlocked.' });
+            setPwMessage({ type: 'success', text: 'Password updated' });
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err: any) {
             setPwMessage({
                 type: 'error',
-                text: err.response?.data?.detail || err.message || 'Failed to change password.',
+                text: err.response?.data?.detail || err.message || 'Failed to update password',
             });
         } finally {
             setPwLoading(false);
@@ -76,11 +76,11 @@ const SettingsPage: React.FC = () => {
         setUnMessage(null);
 
         if (!newUsername.trim() || newUsername.length < 3) {
-            setUnMessage({ type: 'error', text: 'Username must be at least 3 characters.' });
+            setUnMessage({ type: 'error', text: 'Username must be at least 3 characters' });
             return;
         }
         if (!username || !encryptionKey || !encryptedDek) {
-            setUnMessage({ type: 'error', text: 'Vault is locked. Sign in again.' });
+            setUnMessage({ type: 'error', text: 'Session expired. Please sign in again.' });
             return;
         }
 
@@ -99,13 +99,13 @@ const SettingsPage: React.FC = () => {
             // Session JWT is keyed by user id, so update the in-memory salt only.
             setSession(encryptionKey, newEncryptedDek, trimmed);
 
-            setUnMessage({ type: 'success', text: 'Username changed successfully. Your vault stays unlocked.' });
+            setUnMessage({ type: 'success', text: 'Username updated' });
             setNewUsername('');
             setUsernamePassword('');
         } catch (err: any) {
             setUnMessage({
                 type: 'error',
-                text: err.response?.data?.detail || err.message || 'Failed to change username.',
+                text: err.response?.data?.detail || err.message || 'Failed to update username',
             });
         } finally {
             setUnLoading(false);
@@ -135,9 +135,6 @@ const SettingsPage: React.FC = () => {
                     </div>
                     Settings
                 </h2>
-                <p className="text-slate-600 text-xs mt-1.5 font-mono uppercase tracking-wider">
-                    Manage your account details and master password
-                </p>
             </div>
 
             {/* ═══ Change Password Section ═════════════════════════════════ */}
@@ -148,9 +145,6 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-white">Change Password</h3>
-                        <p className="text-[10px] text-slate-600 font-mono uppercase tracking-wider">
-                            Update your master password
-                        </p>
                     </div>
                 </div>
 
@@ -215,7 +209,7 @@ const SettingsPage: React.FC = () => {
                         className="w-full md:w-auto px-5 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
                     >
                         {pwLoading ? <Loader2 size={14} className="animate-spin" /> : <Fingerprint size={14} />}
-                        {pwLoading ? 'Deriving keys...' : 'Update Password'}
+                        {pwLoading ? 'Updating...' : 'Update Password'}
                     </button>
                 </form>
             </div>
@@ -228,9 +222,6 @@ const SettingsPage: React.FC = () => {
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-white">Change Username</h3>
-                        <p className="text-[10px] text-slate-600 font-mono uppercase tracking-wider">
-                            Update your account username
-                        </p>
                     </div>
                 </div>
 
@@ -278,7 +269,7 @@ const SettingsPage: React.FC = () => {
                         className="w-full md:w-auto px-5 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
                     >
                         {unLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                        {unLoading ? 'Saving...' : 'Change Username'}
+                        {unLoading ? 'Updating...' : 'Update Username'}
                     </button>
                 </form>
             </div>

@@ -34,7 +34,7 @@ def authenticate_user(username: str, login_hash: str, db: Session) -> tuple[str,
     if not user or not verify_login_hash(login_hash, user.login_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or login hash.",
+            detail="Invalid username or password.",
         )
 
     return create_access_token(user.id), user.encrypted_dek

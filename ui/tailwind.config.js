@@ -33,8 +33,16 @@ export default {
         },
       },
       fontFamily: {
-        mono: ['"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono Variable"', '"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
+        sans: ['"JetBrains Mono Variable"', '"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
+      },
+      borderRadius: {
+        DEFAULT: '2px',
+        sm: '2px',
+        md: '2px',
+        lg: '3px',
+        xl: '4px',
+        '2xl': '4px',
       },
     },
   },

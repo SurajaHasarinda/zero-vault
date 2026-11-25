@@ -9,25 +9,18 @@ import {
     Copy,
     Check,
     Loader2,
-    FileText,
     Clock,
     ShieldCheck,
     FolderLock,
-    X,
-    Save,
-    Terminal,
-    Lock,
-    Zap,
-    Database,
-    ChevronRight,
     Pencil,
     ChevronDown,
 } from 'lucide-react';
-import { api, SecretEntry } from '../api';
+import { api } from '../api';
 import { useCryptoKey } from '../context/CryptoContext';
 import { encryptText, decryptText } from '../utils/cryptoUtils';
 import Snackbar, { SnackbarType } from '../components/common/Snackbar';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import SecretModal from '../components/common/SecretModal';
 
 interface DecryptedSecret {
     id: string;
@@ -138,7 +131,7 @@ const DashboardPage: React.FC = () => {
             );
             setSelectedId(secret.id);
         } catch {
-            showSnackbar('Failed to decrypt. Wrong key or corrupted data.', 'error');
+            showSnackbar('Could not unlock this secret. Please sign in again.', 'error');
             setSecrets((prev) =>
                 prev.map((s) =>
                     s.id === secret.id ? { ...s, isDecrypting: false } : s
@@ -183,7 +176,7 @@ const DashboardPage: React.FC = () => {
                     )
                 );
             } catch {
-                showSnackbar('Failed to decrypt for editing.', 'error');
+                showSnackbar('Could not open this secret for editing', 'error');
                 return;
             }
         }
@@ -209,8 +202,8 @@ const DashboardPage: React.FC = () => {
             await api.upsertSecret(newTitle, blob);
             showSnackbar(
                 editingSecret
-                    ? `Secret "${newTitle}" updated`
-                    : `Secret "${newTitle}" encrypted & stored`,
+                    ? `"${newTitle}" updated`
+                    : `"${newTitle}" saved`,
                 'success'
             );
             setShowAddModal(false);
@@ -267,7 +260,7 @@ const DashboardPage: React.FC = () => {
                         Your Vault
                     </h1>
                     <p className="text-slate-600 text-xs mt-1.5 font-mono uppercase tracking-wider">
-                        {secrets.length} secret{secrets.length !== 1 ? 's' : ''} stored · End-to-end encrypted
+                        {secrets.length} secret{secrets.length !== 1 ? 's' : ''}
                     </p>
                 </div>
                 <button
@@ -298,7 +291,7 @@ const DashboardPage: React.FC = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 size={28} className="animate-spin text-neon-green mb-3" />
-                    <p className="text-xs text-slate-600 font-mono uppercase tracking-wider">Loading vault...</p>
+                    <p className="text-xs text-slate-600 font-mono uppercase tracking-wider">Loading...</p>
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -311,7 +304,7 @@ const DashboardPage: React.FC = () => {
                     <p className="text-xs text-slate-700 font-mono">
                         {searchQuery
                             ? 'Try a different search term'
-                            : 'Click "Add Secret" to store your first encrypted secret'}
+                            : 'Click "Add Secret" to save your first secret'}
                     </p>
                 </div>
             ) : (
@@ -377,7 +370,7 @@ const DashboardPage: React.FC = () => {
                                                     ? 'text-neon-green bg-neon-green/10 hover:bg-neon-green/20'
                                                     : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5'
                                                     }`}
-                                                title={isOpen ? 'Collapse' : 'Expand & Decrypt'}
+                                                title={isOpen ? 'Hide' : 'Show'}
                                             >
                                                 <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
                                             </button>
@@ -402,13 +395,7 @@ const DashboardPage: React.FC = () => {
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         {/* Action bar */}
-                                        <div className="flex items-center justify-between px-4 py-2 border-t border-[#1e1e1e] bg-[#0c0c0c]">
-                                            <div className="flex items-center gap-2">
-                                                <ShieldCheck size={12} className="text-neon-green" />
-                                                <span className="text-[9px] text-neon-green font-mono uppercase tracking-wider">
-                                                    Decrypted · In-memory only
-                                                </span>
-                                            </div>
+                                        <div className="flex items-center justify-end px-4 py-2 border-t border-[#1e1e1e] bg-[#0c0c0c]">
                                             <div className="flex items-center gap-1">
                                                 <button
                                                     onClick={() => openEditModal(secret)}
@@ -482,7 +469,7 @@ const DashboardPage: React.FC = () => {
                                                             <div className="terminal-dot bg-accent-amber/60 !w-1.5 !h-1.5" />
                                                             <div className="terminal-dot bg-neon-green/60 !w-1.5 !h-1.5" />
                                                             <span className="ml-2 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
-                                                                {secret.title} — plaintext
+                                                                {secret.title}
                                                             </span>
                                                         </div>
                                                         <pre className="p-4 text-sm text-neon-green-glow/90 font-mono whitespace-pre-wrap break-words leading-relaxed select-text cursor-text">
@@ -501,106 +488,17 @@ const DashboardPage: React.FC = () => {
             )}
 
             {/* ─── Add Secret Modal ───────────────────────────────────────── */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                    <div className="glass-heavy rounded-xl border border-[#1e1e1e] w-full max-w-lg shadow-2xl shadow-black/50 animate-fade-in relative overflow-hidden">
-                        {/* Top glow */}
-                        <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-neon-green/30 to-transparent" />
-
-                        <div className="flex items-center justify-between p-5 border-b border-[#1e1e1e]">
-                            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${editingSecret
-                                    ? 'bg-accent-blue/10 border-accent-blue/20'
-                                    : 'bg-neon-green/10 border-neon-green/20'
-                                    }`}>
-                                    {editingSecret
-                                        ? <Pencil size={14} className="text-accent-blue" />
-                                        : <Plus size={14} className="text-neon-green" />
-                                    }
-                                </div>
-                                <span className="font-mono uppercase tracking-wider">
-                                    {editingSecret ? 'Edit Secret' : 'New Secret'}
-                                </span>
-                            </h2>
-                            <button
-                                onClick={closeModal}
-                                className="p-1.5 text-slate-600 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        <div className="p-5 space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
-                                    Title
-                                </label>
-                                <input
-                                    type="text"
-                                    value={editTitle}
-                                    onChange={(e) => setEditTitle(e.target.value)}
-                                    placeholder="e.g., GitHub SSH Key, AWS Credentials"
-                                    className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white px-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono"
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
-                                    Secret Content
-                                </label>
-                                <div className="terminal-block">
-                                    <div className="terminal-header">
-                                        <div className="terminal-dot bg-accent-red/60" />
-                                        <div className="terminal-dot bg-accent-amber/60" />
-                                        <div className="terminal-dot bg-neon-green/60" />
-                                        <span className="ml-3 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
-                                            plaintext
-                                        </span>
-                                    </div>
-                                    <textarea
-                                        value={editContent}
-                                        onChange={(e) => setEditContent(e.target.value)}
-                                        placeholder={`DB_HOST=localhost\nDB_USER=admin\nDB_PASS=supersecret\nAPI_KEY=sk-abc123...`}
-                                        rows={8}
-                                        className="w-full bg-transparent text-neon-green-glow/80 px-4 py-3 focus:outline-none transition-all placeholder:text-slate-800 font-mono text-sm resize-none custom-scrollbar leading-relaxed"
-                                    />
-                                </div>
-                                <p className="text-[9px] text-slate-700 ml-1 font-mono flex items-center gap-1.5 mt-1">
-                                    <Lock size={8} className="text-neon-green/50" />
-                                    Content encrypted with AES-256-GCM before leaving browser
-                                </p>
-                            </div>
-
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    onClick={closeModal}
-                                    className="flex-1 px-4 py-2.5 bg-[#111111] hover:bg-[#1a1a1a] text-slate-400 rounded-lg font-semibold transition-colors text-xs font-mono uppercase tracking-wider border border-[#1e1e1e]"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={saving || !editTitle.trim() || !editContent.trim()}
-                                    className="flex-1 px-4 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
-                                >
-                                    {saving ? (
-                                        <>
-                                            <Loader2 size={14} className="animate-spin" />
-                                            Encrypting...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Zap size={14} />
-                                            {editingSecret ? 'Re-encrypt & Save' : 'Encrypt & Save'}
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <SecretModal
+                isOpen={showAddModal}
+                title={editTitle}
+                content={editContent}
+                isEditing={!!editingSecret}
+                saving={saving}
+                onTitleChange={setEditTitle}
+                onContentChange={setEditContent}
+                onSave={handleSave}
+                onClose={closeModal}
+            />
 
             {/* ─── Delete Confirmation ────────────────────────────────────── */}
             <ConfirmDialog
