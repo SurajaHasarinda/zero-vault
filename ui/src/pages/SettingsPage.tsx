@@ -11,27 +11,23 @@ import {
     Fingerprint,
 } from 'lucide-react';
 import { api } from '../api';
-import { deriveKeys } from '../utils/cryptoUtils';
+import { deriveKeys, rewrapDek } from '../utils/cryptoUtils';
 import { useCryptoKey } from '../context/CryptoContext';
 
 const SettingsPage: React.FC = () => {
-    // ─── Change Password ─────────────────────────────────────────────
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [pwLoading, setPwLoading] = useState(false);
     const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    // ─── Change Username ─────────────────────────────────────────────
     const [newUsername, setNewUsername] = useState('');
     const [usernamePassword, setUsernamePassword] = useState('');
     const [unLoading, setUnLoading] = useState(false);
     const [unMessage, setUnMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    const { setEncryptionKey } = useCryptoKey();
-    const username = api.getUsername();
+    const { encryptionKey, encryptedDek, username, setSession } = useCryptoKey();
 
-    // ─── Change Password ─────────────────────────────────────────────
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
         setPwMessage(null);
@@ -44,30 +40,37 @@ const SettingsPage: React.FC = () => {
             setPwMessage({ type: 'error', text: 'Password must be at least 8 characters.' });
             return;
         }
+        if (!username || !encryptionKey || !encryptedDek) {
+            setPwMessage({ type: 'error', text: 'Vault is locked. Sign in again.' });
+            return;
+        }
 
         setPwLoading(true);
         try {
-            const { loginHash: currentLoginHash } = await deriveKeys(currentPassword, username);
-            const { loginHash: newLoginHash, encryptionKey: newKey } = await deriveKeys(newPassword, username);
+            const { loginHash: currentLoginHash, kek: oldKek } = await deriveKeys(currentPassword, username);
+            const { loginHash: newLoginHash, kek: newKek } = await deriveKeys(newPassword, username);
 
-            await api.changePassword(currentLoginHash, newLoginHash);
-            setEncryptionKey(newKey);
+            // Throws OperationError if current password is wrong.
+            const newEncryptedDek = await rewrapDek(encryptedDek, oldKek, newKek);
 
-            setPwMessage({ type: 'success', text: 'Password changed. Re-encrypt secrets with the new key if needed.' });
+            await api.changePassword(currentLoginHash, newLoginHash, newEncryptedDek);
+
+            setSession(encryptionKey, newEncryptedDek, username);
+
+            setPwMessage({ type: 'success', text: 'Password changed. Your vault stays unlocked.' });
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err: any) {
             setPwMessage({
                 type: 'error',
-                text: err.response?.data?.detail || 'Failed to change password.',
+                text: err.response?.data?.detail || err.message || 'Failed to change password.',
             });
         } finally {
             setPwLoading(false);
         }
     };
 
-    // ─── Change Username ─────────────────────────────────────────────
     const handleUsernameChange = async (e: React.FormEvent) => {
         e.preventDefault();
         setUnMessage(null);
@@ -76,26 +79,39 @@ const SettingsPage: React.FC = () => {
             setUnMessage({ type: 'error', text: 'Username must be at least 3 characters.' });
             return;
         }
+        if (!username || !encryptionKey || !encryptedDek) {
+            setUnMessage({ type: 'error', text: 'Vault is locked. Sign in again.' });
+            return;
+        }
 
         setUnLoading(true);
         try {
-            const { loginHash } = await deriveKeys(usernamePassword, username);
-            await api.changeUsername(newUsername.trim(), loginHash);
-            api.setUsername(newUsername.trim());
-            setUnMessage({ type: 'success', text: 'Username changed successfully. You may need to re-login.' });
+            const trimmed = newUsername.trim();
+
+            // Username is the PBKDF2 salt; rebind the DEK wrapper to the new salt.
+            const { loginHash: currentLoginHash, kek: oldKek } = await deriveKeys(usernamePassword, username);
+            const { loginHash: newLoginHash, kek: newKek } = await deriveKeys(usernamePassword, trimmed);
+
+            const newEncryptedDek = await rewrapDek(encryptedDek, oldKek, newKek);
+
+            await api.changeUsername(trimmed, currentLoginHash, newLoginHash, newEncryptedDek);
+
+            // Session JWT is keyed by user id, so update the in-memory salt only.
+            setSession(encryptionKey, newEncryptedDek, trimmed);
+
+            setUnMessage({ type: 'success', text: 'Username changed successfully. Your vault stays unlocked.' });
             setNewUsername('');
             setUsernamePassword('');
         } catch (err: any) {
             setUnMessage({
                 type: 'error',
-                text: err.response?.data?.detail || 'Failed to change username.',
+                text: err.response?.data?.detail || err.message || 'Failed to change username.',
             });
         } finally {
             setUnLoading(false);
         }
     };
 
-    // ─── Message component ───────────────────────────────────────────
     const StatusBanner: React.FC<{ msg: { type: 'success' | 'error'; text: string } | null }> = ({ msg }) => {
         if (!msg) return null;
         return (

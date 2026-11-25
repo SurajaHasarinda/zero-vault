@@ -1,8 +1,3 @@
-"""
-Encrypted Files controller — thin route handlers for file CRUD.
-All business logic lives in app.services.files_service.
-"""
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -36,12 +31,6 @@ def list_files(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Return every encrypted file belonging to the authenticated user.
-
-    The response contains plaintext metadata (filename, size, mime_type)
-    and the **encrypted_data** (which only the client can decrypt).
-    """
     return get_user_files(current_user.id, db)
 
 
@@ -56,13 +45,6 @@ def create_or_update_file(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Create a new encrypted file or **update** an existing one if a file with
-    the same ``filename`` already exists for this user.
-
-    The server stores only the **encrypted_data** — it cannot read the
-    file content (zero-knowledge).
-    """
     return upsert_file(
         user_id=current_user.id,
         title=payload.title,
@@ -84,11 +66,6 @@ def remove_file(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Permanently remove an encrypted file entry.
-
-    Only the **owner** of the file can delete it.
-    """
     delete_file(str(file_id), current_user.id, db)
     return MessageResponse(message="File deleted successfully.")
 
@@ -103,9 +80,6 @@ def rename_group(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Rename all files in a group from **old_title** to **new_title**.
-    """
     count = rename_group_title(
         user_id=current_user.id,
         old_title=payload.old_title,

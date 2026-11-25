@@ -1,16 +1,5 @@
-/**
- * api.ts — Axios-based API client for the FastAPI backend.
- *
- * The JWT token is stored in sessionStorage (cleared on tab close).
- * The username is stored alongside for the crypto salt derivation.
- */
-
 import axios, { AxiosInstance } from 'axios';
 
-const TOKEN_KEY = 'vault_token';
-const USERNAME_KEY = 'vault_user';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SecretEntry {
     id: string;
@@ -29,7 +18,6 @@ export interface EncryptedFileEntry {
     updated_at: string;
 }
 
-// ─── API Client ──────────────────────────────────────────────────────────────
 
 class ApiClient {
     private client: AxiosInstance;
@@ -37,44 +25,43 @@ class ApiClient {
     constructor() {
         this.client = axios.create({
             baseURL: '/api',
+            withCredentials: true,
             headers: { 'Content-Type': 'application/json' },
-        });
-
-        // Attach JWT to every request
-        this.client.interceptors.request.use((config) => {
-            const token = this.getToken();
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-            return config;
         });
     }
 
-    // ─── Auth ────────────────────────────────────────────────────────────
 
-    async register(username: string, loginHash: string): Promise<void> {
+    async register(
+        username: string,
+        loginHash: string,
+        encryptedDek: string
+    ): Promise<void> {
         await this.client.post('/auth/register', {
             username,
             login_hash: loginHash,
+            encrypted_dek: encryptedDek,
         });
     }
 
-    async login(username: string, loginHash: string): Promise<string> {
-        const { data } = await this.client.post<{ access_token: string }>(
+    async login(
+        username: string,
+        loginHash: string
+    ): Promise<{ encryptedDek: string }> {
+        const { data } = await this.client.post<{ encrypted_dek: string }>(
             '/auth/login',
             { username, login_hash: loginHash }
         );
-        this.setToken(data.access_token);
-        this.setUsername(username);
-        return data.access_token;
+        return { encryptedDek: data.encrypted_dek };
     }
 
-    logout(): void {
-        sessionStorage.removeItem(TOKEN_KEY);
-        sessionStorage.removeItem(USERNAME_KEY);
+    async logout(): Promise<void> {
+        try {
+            await this.client.post('/auth/logout');
+        } catch {
+            // Best-effort; local key is cleared by caller.
+        }
     }
 
-    // ─── Secrets ─────────────────────────────────────────────────────────
 
     async getSecrets(): Promise<SecretEntry[]> {
         const { data } = await this.client.get<SecretEntry[]>('/secrets');
@@ -93,7 +80,6 @@ class ApiClient {
         await this.client.delete(`/secrets/${id}`);
     }
 
-    // ─── Encrypted Files ─────────────────────────────────────────────────
 
     async getFiles(): Promise<EncryptedFileEntry[]> {
         const { data } = await this.client.get<EncryptedFileEntry[]>('/files');
@@ -128,42 +114,31 @@ class ApiClient {
         });
     }
 
-    // ─── Settings ────────────────────────────────────────────────────────
 
-    async changePassword(currentLoginHash: string, newLoginHash: string): Promise<void> {
+    async changePassword(
+        currentLoginHash: string,
+        newLoginHash: string,
+        encryptedDek: string
+    ): Promise<void> {
         await this.client.put('/settings/password', {
             current_login_hash: currentLoginHash,
             new_login_hash: newLoginHash,
+            encrypted_dek: encryptedDek,
         });
     }
 
-    async changeUsername(newUsername: string, currentLoginHash: string): Promise<void> {
+    async changeUsername(
+        newUsername: string,
+        currentLoginHash: string,
+        newLoginHash: string,
+        encryptedDek: string
+    ): Promise<void> {
         await this.client.put('/settings/username', {
             new_username: newUsername,
             current_login_hash: currentLoginHash,
+            new_login_hash: newLoginHash,
+            encrypted_dek: encryptedDek,
         });
-    }
-
-    // ─── Token helpers ───────────────────────────────────────────────────
-
-    isAuthenticated(): boolean {
-        return !!this.getToken();
-    }
-
-    getToken(): string | null {
-        return sessionStorage.getItem(TOKEN_KEY);
-    }
-
-    private setToken(token: string): void {
-        sessionStorage.setItem(TOKEN_KEY, token);
-    }
-
-    getUsername(): string {
-        return sessionStorage.getItem(USERNAME_KEY) || '';
-    }
-
-    setUsername(username: string): void {
-        sessionStorage.setItem(USERNAME_KEY, username);
     }
 }
 

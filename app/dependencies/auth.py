@@ -1,12 +1,7 @@
-"""
-JWT utilities and the ``get_current_user`` FastAPI dependency.
-"""
-
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, Response, status
 import bcrypt
 from sqlalchemy.orm import Session
 
@@ -14,30 +9,45 @@ from app.config import settings
 from app.database import get_db
 from app.models.models import User
 
-# ─── Password / Hash helpers ─────────────────────────────────────────────────
+SESSION_COOKIE = "vault_session"
 
-security_scheme = HTTPBearer()
+
+def set_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        max_age=settings.JWT_EXPIRATION_MINUTES * 60,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        SESSION_COOKIE,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
 
 
 def hash_login_hash(plain_login_hash: str) -> str:
-    """Double-hash: bcrypt the client-derived login_hash before storing."""
     salt = bcrypt.gensalt()
     hashed_bytes = bcrypt.hashpw(plain_login_hash.encode('utf-8'), salt)
     return hashed_bytes.decode('utf-8')
 
 
 def verify_login_hash(plain_login_hash: str, hashed: str) -> bool:
-    """Verify client-supplied login_hash against stored bcrypt hash."""
     return bcrypt.checkpw(
         plain_login_hash.encode('utf-8'),
         hashed.encode('utf-8')
     )
 
 
-# ─── JWT helpers ──────────────────────────────────────────────────────────────
-
 def create_access_token(user_id: str) -> str:
-    """Create a signed JWT containing the user's UUID as the ``sub`` claim."""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user_id),
@@ -48,7 +58,6 @@ def create_access_token(user_id: str) -> str:
 
 
 def decode_access_token(token: str) -> dict:
-    """Decode and validate a JWT. Raises HTTPException on failure."""
     try:
         return jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
@@ -65,17 +74,18 @@ def decode_access_token(token: str) -> dict:
         )
 
 
-# ─── FastAPI dependency ──────────────────────────────────────────────────────
-
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> User:
-    """
-    Extract and validate the Bearer token, then return the corresponding
-    ``User`` ORM object.  Used as a dependency on protected routes.
-    """
-    payload = decode_access_token(credentials.credentials)
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated.",
+        )
+
+    payload = decode_access_token(token)
     user_id: str | None = payload.get("sub")
     if user_id is None:
         raise HTTPException(

@@ -1,7 +1,3 @@
-"""
-Settings controller — routes for account management.
-"""
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -21,8 +17,6 @@ from app.services.settings_service import (
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
 
-# ─── Account ─────────────────────────────────────────────────────────────────
-
 @router.put(
     "/password",
     response_model=MessageResponse,
@@ -33,14 +27,11 @@ def update_password(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Change the user's login hash.
-    Requires the current login hash for verification.
-    """
     change_user_password(
         current_user,
         payload.current_login_hash,
         payload.new_login_hash,
+        payload.encrypted_dek,
         db,
     )
     return MessageResponse(message="Password changed successfully.")
@@ -56,14 +47,13 @@ def update_username(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Change the user's username.
-    Requires the current login hash for verification.
-    """
+    """Username is the PBKDF2 salt, so login_hash and encrypted_dek must be re-derived together."""
     change_username(
         current_user,
         payload.new_username,
         payload.current_login_hash,
+        payload.new_login_hash,
+        payload.encrypted_dek,
         db,
     )
     return MessageResponse(message="Username changed successfully.")

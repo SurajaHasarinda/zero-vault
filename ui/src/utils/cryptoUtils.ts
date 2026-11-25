@@ -1,33 +1,10 @@
-/**
- * cryptoUtils.ts — Zero-Knowledge Cryptography Layer
- *
- * All cryptographic operations happen entirely in the browser using the
- * Web Crypto API. The master password NEVER leaves the client.
- *
- * Key Derivation Flow:
- *   Password + Salt → PBKDF2 → Base Key (256-bit)
- *     ├─ SHA-256(Base Key + "auth")  → Login Hash  (sent to server)
- *     └─ SHA-256(Base Key + "crypt") → Encryption Key (stays in RAM)
- *
- * Encryption: AES-256-GCM with random 12-byte IV per operation.
- */
-
+// Client-side Web Crypto layer: PBKDF2(512-bit) -> [loginHash, KEK], AES-256-GCM DEK.
 const PBKDF2_ITERATIONS = 600_000;
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function arrayBufferToHex(buffer: ArrayBuffer): string {
     return Array.from(new Uint8Array(buffer))
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
-}
-
-function hexToArrayBuffer(hex: string): ArrayBuffer {
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-    }
-    return bytes.buffer;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -48,11 +25,6 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
     return bytes.buffer;
 }
 
-// ─── Key Derivation ─────────────────────────────────────────────────────────
-
-/**
- * Derive a 256-bit Base Key from the password + salt using PBKDF2.
- */
 async function deriveBaseKey(
     password: string,
     salt: string
@@ -74,66 +46,80 @@ async function deriveBaseKey(
             hash: 'SHA-256',
         },
         keyMaterial,
-        256
+        512
     );
 }
 
-/**
- * Fork the Base Key into a Login Hash and an Encryption Key.
- *
- * Login Hash   = SHA-256(Base Key || "auth")   → hex string (sent to server)
- * Encrypt Key  = SHA-256(Base Key || "crypt")  → CryptoKey (stays in RAM)
- */
 async function forkKeys(baseKey: ArrayBuffer): Promise<{
     loginHash: string;
-    encryptionKey: CryptoKey;
+    kek: CryptoKey;
 }> {
-    const encoder = new TextEncoder();
+    const bytes = new Uint8Array(baseKey);
 
-    // Login Hash = SHA-256(baseKey + "auth")
-    const authData = new Uint8Array([
-        ...new Uint8Array(baseKey),
-        ...encoder.encode('auth'),
-    ]);
-    const loginHashBuffer = await crypto.subtle.digest('SHA-256', authData);
-    const loginHash = arrayBufferToHex(loginHashBuffer);
+    const loginHash = arrayBufferToHex(bytes.slice(0, 32).buffer);
 
-    // Encryption Key = SHA-256(baseKey + "crypt") → import as AES-GCM key
-    const cryptData = new Uint8Array([
-        ...new Uint8Array(baseKey),
-        ...encoder.encode('crypt'),
-    ]);
-    const encKeyBuffer = await crypto.subtle.digest('SHA-256', cryptData);
-    const encryptionKey = await crypto.subtle.importKey(
+    const kek = await crypto.subtle.importKey(
         'raw',
-        encKeyBuffer,
+        bytes.slice(32, 64),
         { name: 'AES-GCM' },
-        true, // Allow extractable so we can persist in sessionStorage across refreshes
+        false,
         ['encrypt', 'decrypt']
     );
 
-    return { loginHash, encryptionKey };
+    return { loginHash, kek };
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────
-
-/**
- * Derive both the login hash and encryption key from a password.
- * The salt is the username (deterministic per-user).
- */
 export async function deriveKeys(
     password: string,
     username: string
-): Promise<{ loginHash: string; encryptionKey: CryptoKey }> {
+): Promise<{ loginHash: string; kek: CryptoKey }> {
     const salt = `vault-zero:${username}`;
     const baseKey = await deriveBaseKey(password, salt);
     return forkKeys(baseKey);
 }
 
-/**
- * Encrypt plaintext using AES-256-GCM.
- * Returns a base64 string of (12-byte IV || ciphertext).
- */
+export async function generateDek(
+    kek: CryptoKey
+): Promise<{ dek: CryptoKey; encryptedDek: string }> {
+    const raw = crypto.getRandomValues(new Uint8Array(32));
+
+    const dek = await crypto.subtle.importKey(
+        'raw',
+        raw,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt', 'decrypt']
+    );
+
+    const encryptedDek = await encryptBinary(raw.buffer, kek);
+
+    return { dek, encryptedDek };
+}
+
+export async function unwrapDek(
+    encryptedDek: string,
+    kek: CryptoKey
+): Promise<CryptoKey> {
+    const raw = await decryptBinary(encryptedDek, kek);
+
+    return crypto.subtle.importKey(
+        'raw',
+        raw,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+export async function rewrapDek(
+    encryptedDek: string,
+    oldKek: CryptoKey,
+    newKek: CryptoKey
+): Promise<string> {
+    const raw = await decryptBinary(encryptedDek, oldKek);
+    return encryptBinary(raw, newKek);
+}
+
 export async function encryptText(
     plaintext: string,
     key: CryptoKey
@@ -146,7 +132,6 @@ export async function encryptText(
         encoder.encode(plaintext)
     );
 
-    // Prepend IV to ciphertext
     const combined = new Uint8Array(iv.length + new Uint8Array(ciphertext).length);
     combined.set(iv);
     combined.set(new Uint8Array(ciphertext), iv.length);
@@ -154,9 +139,6 @@ export async function encryptText(
     return arrayBufferToBase64(combined.buffer);
 }
 
-/**
- * Decrypt an AES-256-GCM encrypted blob (base64 string with prepended IV).
- */
 export async function decryptText(
     encryptedBlob: string,
     key: CryptoKey
@@ -174,34 +156,6 @@ export async function decryptText(
     return new TextDecoder().decode(plainBuffer);
 }
 
-/**
- * Export the CryptoKey to a base64 string so it can be stored in sessionStorage.
- */
-export async function exportKeyToBase64(key: CryptoKey): Promise<string> {
-    const raw = await crypto.subtle.exportKey('raw', key);
-    return arrayBufferToBase64(raw);
-}
-
-/**
- * Import the base64 string back into a CryptoKey for AES-GCM.
- */
-export async function importKeyFromBase64(base64: string): Promise<CryptoKey> {
-    const raw = base64ToArrayBuffer(base64);
-    return crypto.subtle.importKey(
-        'raw',
-        raw,
-        { name: 'AES-GCM' },
-        true,
-        ['encrypt', 'decrypt']
-    );
-}
-
-// ─── Binary File Encryption ─────────────────────────────────────────────────
-
-/**
- * Encrypt an ArrayBuffer (raw file bytes) using AES-256-GCM.
- * Returns a base64 string of (12-byte IV || ciphertext).
- */
 export async function encryptBinary(
     data: ArrayBuffer,
     key: CryptoKey
@@ -220,10 +174,6 @@ export async function encryptBinary(
     return arrayBufferToBase64(combined.buffer);
 }
 
-/**
- * Decrypt an AES-256-GCM encrypted blob (base64 string) back to raw bytes.
- * Returns the original ArrayBuffer.
- */
 export async function decryptBinary(
     encryptedBlob: string,
     key: CryptoKey

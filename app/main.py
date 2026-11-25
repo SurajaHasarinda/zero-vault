@@ -1,13 +1,9 @@
-"""
-Zero-Knowledge Secret Manager — FastAPI Application Entry Point.
-"""
-
 from contextlib import asynccontextmanager
 import logging
 
 import os
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,10 +15,8 @@ from app.controllers import auth, secrets, settings_controller, files
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Lifespan: create tables on startup
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Create database tables on startup."""
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database initialized successfully.")
@@ -31,7 +25,6 @@ async def lifespan(_app: FastAPI):
 
     yield
 
-# App instance
 app = FastAPI(
     title="Zero-Knowledge Secret Manager",
     description=(
@@ -42,16 +35,54 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Only needed for cross-origin dev (e.g. Vite proxy); empty = same-origin only.
+if settings.cors_origin_list:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Content-Type"],
+    )
 
-# Routers (Mount API routes under /api so they don't conflict with frontend routing)
+MAX_BODY = 16 * 1024 * 1024  # 16 MiB (5 MB max file ≈ 6.85 MB base64)
+
+CSP_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'none'; "
+        "script-src 'self'; "
+        "style-src 'self'; "
+        "style-src-attr 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "base-uri 'none'; "
+        "form-action 'none'; "
+        "frame-ancestors 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": (
+        "camera=(), microphone=(), geolocation=(), payment=()"
+    ),
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+
+if settings.COOKIE_SECURE:
+    CSP_HEADERS["Strict-Transport-Security"] = (
+        "max-age=63072000; includeSubDomains"
+    )
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    if int(request.headers.get("content-length") or 0) > MAX_BODY:
+        return JSONResponse({"detail": "Payload too large"}, status_code=413)
+    response = await call_next(request)
+    response.headers.update(CSP_HEADERS)
+    return response
+
 from fastapi import APIRouter
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
@@ -61,33 +92,26 @@ api_router.include_router(files.router)
 
 app.include_router(api_router)
 
-# Health check
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok", "service": "Zero-Knowledge Secret Manager"}
 
-# Serve Frontend
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "static")
 
 if os.path.isdir(STATIC_DIR):
-    # Mount the /assets folder (which Vite generates)
     app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
     
     from fastapi.responses import HTMLResponse, FileResponse
     
-    # Catch-all route to serve the SPA's index.html and root static files
     @app.get("/{full_path:path}", response_class=HTMLResponse, include_in_schema=False)
     async def serve_spa(request: Request, full_path: str):
-        # Ignore API routes that somehow fell through
         if full_path.startswith("api/") or full_path in ["health", "docs", "openapi.json", "redoc"]:
             return HTMLResponse(status_code=404, content="Not Found")
             
-        # Check if it's an actual file in the static directory (e.g. favicon.ico, zero-vault.svg)
         file_path = os.path.join(STATIC_DIR, full_path)
         if os.path.isfile(file_path):
             return FileResponse(file_path)
             
-        # Otherwise, serve the SPA index.html
         index_file = os.path.join(STATIC_DIR, "index.html")
         if os.path.exists(index_file):
             with open(index_file, 'r', encoding='utf-8') as f:

@@ -27,7 +27,6 @@ import { encryptBinary, decryptBinary } from '../utils/cryptoUtils';
 import Snackbar, { SnackbarType } from '../components/common/Snackbar';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
-/** Format bytes into human-readable size */
 function formatSize(bytes: number): string {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -36,7 +35,6 @@ function formatSize(bytes: number): string {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-/** Get icon for file type */
 function getFileIcon(mimeType: string, filename: string) {
     if (
         filename.startsWith('id_') ||
@@ -56,7 +54,6 @@ function getFileIcon(mimeType: string, filename: string) {
     return <FileText size={14} />;
 }
 
-/** Get file category label */
 function getFileCategory(mimeType: string, filename: string): string {
     if (
         filename.startsWith('id_') ||
@@ -84,7 +81,7 @@ interface FileGroup {
     totalSize: number;
 }
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const FilesPage: React.FC = () => {
     const { encryptionKey } = useCryptoKey();
@@ -93,32 +90,22 @@ const FilesPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Upload modal state
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadTitle, setUploadTitle] = useState('');
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
 
-    // Expanded groups
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-
-    // Download state
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
-    // Delete confirmation
     const [deleteTarget, setDeleteTarget] = useState<EncryptedFileEntry | null>(null);
-
-    // Drag & drop state
     const [isDragging, setIsDragging] = useState(false);
 
-    // Inline title editing
     const [editingGroupTitle, setEditingGroupTitle] = useState<string | null>(null);
     const [editTitleValue, setEditTitleValue] = useState('');
     const [renamingGroup, setRenamingGroup] = useState(false);
     const editTitleInputRef = useRef<HTMLInputElement>(null);
 
-    // Snackbar
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -128,8 +115,6 @@ const FilesPage: React.FC = () => {
     const showSnackbar = (message: string, type: SnackbarType) => {
         setSnackbar({ open: true, message, type });
     };
-
-    // ─── Load files ──────────────────────────────────────────────────────
 
     const loadFiles = useCallback(async () => {
         try {
@@ -146,8 +131,6 @@ const FilesPage: React.FC = () => {
     useEffect(() => {
         loadFiles();
     }, [loadFiles]);
-
-    // ─── Group files by title ────────────────────────────────────────────
 
     const existingTitles = useMemo(() => {
         const titles = new Set<string>();
@@ -184,8 +167,6 @@ const FilesPage: React.FC = () => {
         });
     };
 
-    // ─── Rename group title ─────────────────────────────────────────────
-
     const startEditingTitle = (title: string) => {
         setEditingGroupTitle(title);
         setEditTitleValue(title);
@@ -210,7 +191,6 @@ const FilesPage: React.FC = () => {
             await api.renameFileGroup(editingGroupTitle, newTitle);
             showSnackbar(`Group renamed to "${newTitle}"`, 'success');
 
-            // Update expanded groups tracking
             setExpandedGroups(prev => {
                 const next = new Set(prev);
                 if (next.has(editingGroupTitle)) {
@@ -232,8 +212,6 @@ const FilesPage: React.FC = () => {
         }
     };
 
-    // ─── Stage files for upload ──────────────────────────────────────────
-
     const stageFilesForUpload = (selectedFiles: FileList | null) => {
         if (!selectedFiles || selectedFiles.length === 0) return;
 
@@ -252,13 +230,10 @@ const FilesPage: React.FC = () => {
         setPendingFiles(validFiles);
         setShowUploadModal(true);
 
-        // Reset file input
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
-
-    // ─── Upload & Encrypt ────────────────────────────────────────────────
 
     const handleUpload = async () => {
         if (!encryptionKey || !uploadTitle.trim() || pendingFiles.length === 0) return;
@@ -297,7 +272,6 @@ const FilesPage: React.FC = () => {
         setPendingFiles([]);
         loadFiles();
 
-        // Auto-expand the group we just uploaded to
         setExpandedGroups(prev => new Set(prev).add(title));
     };
 
@@ -307,8 +281,6 @@ const FilesPage: React.FC = () => {
         setUploadTitle('');
         setPendingFiles([]);
     };
-
-    // ─── Download & Decrypt ──────────────────────────────────────────────
 
     const handleDownload = async (file: EncryptedFileEntry) => {
         if (!encryptionKey) return;
@@ -336,8 +308,6 @@ const FilesPage: React.FC = () => {
         }
     };
 
-    // ─── Delete ──────────────────────────────────────────────────────────
-
     const handleDelete = async () => {
         if (!deleteTarget) return;
         try {
@@ -350,8 +320,6 @@ const FilesPage: React.FC = () => {
             setDeleteTarget(null);
         }
     };
-
-    // ─── Drag & Drop ─────────────────────────────────────────────────────
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -371,8 +339,6 @@ const FilesPage: React.FC = () => {
         setIsDragging(false);
         stageFilesForUpload(e.dataTransfer.files);
     };
-
-    // ─── Render ──────────────────────────────────────────────────────────
 
     return (
         <div className="space-y-6">

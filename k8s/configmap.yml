@@ -8,5 +8,6 @@ metadata:
 data:
   JWT_ALGORITHM: "HS256"
   JWT_EXPIRATION_MINUTES: "60"
-  CORS_ORIGINS: "*"
+  CORS_ORIGINS: ""
+  COOKIE_SECURE: "true"
   TZ: "Asia/Colombo"
