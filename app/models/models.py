@@ -23,6 +23,7 @@ class User(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     username = Column(String(150), unique=True, nullable=False, index=True)
     login_hash = Column(String(256), nullable=False)  # bcrypt-hashed login_hash
+    encrypted_dek = Column(Text, nullable=False)  # DEK wrapped under the client KEK
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

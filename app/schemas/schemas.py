@@ -16,6 +16,11 @@ class UserRegisterRequest(BaseModel):
         description="Client-derived hash of the master password (never the plaintext password).",
         examples=["a1b2c3d4e5f6..."],
     )
+    encrypted_dek: str = Field(
+        ...,
+        min_length=1,
+        description="Data encryption key, wrapped under a key derived from the master password.",
+    )
 
 
 class UserLoginRequest(BaseModel):
@@ -23,9 +28,16 @@ class UserLoginRequest(BaseModel):
     login_hash: str = Field(..., examples=["a1b2c3d4e5f6..."])
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class LoginResponse(BaseModel):
+    """
+    Login response.
+
+    The JWT itself is not part of the body: it is set as an httpOnly cookie so
+    that no script can read it. Only the wrapped DEK is returned, because the
+    client must unwrap it locally to unlock the vault.
+    """
+
+    encrypted_dek: str
 
 
 
@@ -87,11 +99,26 @@ class FileGroupRenameRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_login_hash: str = Field(..., min_length=8)
     new_login_hash: str = Field(..., min_length=8)
+    encrypted_dek: str = Field(
+        ...,
+        min_length=1,
+        description="Data encryption key, re-wrapped under the new password-derived key.",
+    )
 
 
 class ChangeUsernameRequest(BaseModel):
     new_username: str = Field(..., min_length=3, max_length=150)
     current_login_hash: str = Field(..., min_length=8)
+    new_login_hash: str = Field(
+        ...,
+        min_length=8,
+        description="Login hash re-derived against the new username (the PBKDF2 salt).",
+    )
+    encrypted_dek: str = Field(
+        ...,
+        min_length=1,
+        description="Data encryption key, re-wrapped under the new username's KEK.",
+    )
 
 
 

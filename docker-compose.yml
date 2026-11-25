@@ -8,6 +8,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-to-a-random-secret-key}
-      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
       - TZ=Asia/Colombo
     restart: unless-stopped

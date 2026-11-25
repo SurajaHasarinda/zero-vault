@@ -23,12 +23,11 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
     const navigate = useNavigate();
-    const username = api.getUsername();
-    const { clearKey } = useCryptoKey();
+    const { username, clearKey } = useCryptoKey();
 
     const handleLogout = () => {
         clearKey();
-        api.logout();
+        void api.logout();
         navigate('/login');
     };
 

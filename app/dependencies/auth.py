@@ -5,8 +5,7 @@ JWT utilities and the ``get_current_user`` FastAPI dependency.
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, Response, status
 import bcrypt
 from sqlalchemy.orm import Session
 
@@ -14,9 +13,36 @@ from app.config import settings
 from app.database import get_db
 from app.models.models import User
 
-# ─── Password / Hash helpers ─────────────────────────────────────────────────
+# ─── Session cookie ──────────────────────────────────────────────────────────
 
-security_scheme = HTTPBearer()
+SESSION_COOKIE = "vault_session"
+
+
+def set_session_cookie(response: Response, token: str) -> None:
+    """Attach the session JWT as an httpOnly cookie."""
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        max_age=settings.JWT_EXPIRATION_MINUTES * 60,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    """Expire the session cookie."""
+    response.delete_cookie(
+        SESSION_COOKIE,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+
+# ─── Password / Hash helpers ─────────────────────────────────────────────────
 
 
 def hash_login_hash(plain_login_hash: str) -> str:
@@ -68,14 +94,22 @@ def decode_access_token(token: str) -> dict:
 # ─── FastAPI dependency ──────────────────────────────────────────────────────
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> User:
     """
-    Extract and validate the Bearer token, then return the corresponding
-    ``User`` ORM object.  Used as a dependency on protected routes.
+    Extract and validate the session JWT from the httpOnly cookie, then return
+    the corresponding ``User`` ORM object.  Used as a dependency on protected
+    routes.
     """
-    payload = decode_access_token(credentials.credentials)
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated.",
+        )
+
+    payload = decode_access_token(token)
     user_id: str | None = payload.get("sub")
     if user_id is None:
         raise HTTPException(

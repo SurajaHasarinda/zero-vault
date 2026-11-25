@@ -1,7 +1,7 @@
 from app.schemas.schemas import (  # noqa: F401
     UserRegisterRequest,
     UserLoginRequest,
-    TokenResponse,
+    LoginResponse,
     SecretCreateRequest,
     SecretResponse,
     EncryptedFileCreateRequest,

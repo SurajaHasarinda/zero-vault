@@ -34,13 +34,14 @@ def update_password(
     db: Session = Depends(get_db),
 ):
     """
-    Change the user's login hash.
+    Change the user's login hash and re-wrapped DEK.
     Requires the current login hash for verification.
     """
     change_user_password(
         current_user,
         payload.current_login_hash,
         payload.new_login_hash,
+        payload.encrypted_dek,
         db,
     )
     return MessageResponse(message="Password changed successfully.")
@@ -58,12 +59,17 @@ def update_username(
 ):
     """
     Change the user's username.
-    Requires the current login hash for verification.
+
+    The username is the PBKDF2 salt, so the request also carries a freshly
+    derived login hash and a DEK wrapper bound to the new salt. Requires the
+    current login hash for verification.
     """
     change_username(
         current_user,
         payload.new_username,
         payload.current_login_hash,
+        payload.new_login_hash,
+        payload.encrypted_dek,
         db,
     )
     return MessageResponse(message="Username changed successfully.")

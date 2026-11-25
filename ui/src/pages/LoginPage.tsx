@@ -2,21 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Loader2, AlertCircle, UserPlus, LogIn, Terminal, Fingerprint } from 'lucide-react';
 import { api } from '../api';
-import { deriveKeys } from '../utils/cryptoUtils';
+import { deriveKeys, generateDek, unwrapDek } from '../utils/cryptoUtils';
 import { useCryptoKey } from '../context/CryptoContext';
 
-interface LoginPageProps {
-    onLogin: () => void;
-}
-
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+const LoginPage: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [isRegisterMode, setIsRegisterMode] = useState(false);
     const navigate = useNavigate();
-    const { setEncryptionKey } = useCryptoKey();
+    const { setSession } = useCryptoKey();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,16 +20,24 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         setLoading(true);
 
         try {
-            const { loginHash, encryptionKey } = await deriveKeys(password, username);
+            const { loginHash, kek } = await deriveKeys(password, username);
 
             if (isRegisterMode) {
-                await api.register(username, loginHash);
+                const { encryptedDek } = await generateDek(kek);
+                await api.register(username, loginHash, encryptedDek);
             }
 
-            await api.login(username, loginHash);
-            setEncryptionKey(encryptionKey);
+            const { encryptedDek } = await api.login(username, loginHash);
 
-            onLogin();
+            let dek: CryptoKey;
+            try {
+                dek = await unwrapDek(encryptedDek, kek);
+            } catch {
+                void api.logout();
+                throw new Error('Invalid username or password.');
+            }
+
+            setSession(dek, encryptedDek, username);
             navigate('/');
         } catch (err: any) {
             const msg =

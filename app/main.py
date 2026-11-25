@@ -40,13 +40,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS is only needed when the SPA is served from a different origin than the
+# API (e.g. the Vite dev server). Same-origin deployments need no middleware.
+# Empty CORS_ORIGINS therefore means "same-origin only".
+#
+# Cookie-authenticated requests must carry credentials, which rules out the
+# wildcard origin — CORSMiddleware would refuse to combine them anyway.
+if settings.cors_origin_list:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Content-Type"],
+    )
 
 from fastapi import APIRouter
 api_router = APIRouter(prefix="/api")
