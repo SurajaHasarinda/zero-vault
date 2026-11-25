@@ -15,9 +15,13 @@ import {
     CaseLower,
     Minus,
     Plus,
-    Info,
+    Save,
 } from 'lucide-react';
+import { api } from '../api';
+import { useCryptoKey } from '../context/CryptoContext';
+import { encryptText } from '../utils/cryptoUtils';
 import Snackbar, { SnackbarType } from '../components/common/Snackbar';
+import SecretModal from '../components/common/SecretModal';
 
 const WORDLIST: string[] = [
     'acid', 'acorn', 'acre', 'alpha', 'amber', 'anchor', 'angel', 'anvil',
@@ -191,6 +195,12 @@ const GeneratorPage: React.FC = () => {
     const [capitalize, setCapitalize] = useState(true);
     const [includeNumber, setIncludeNumber] = useState(true);
 
+    const { encryptionKey } = useCryptoKey();
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [saveTitle, setSaveTitle] = useState('');
+    const [saveContent, setSaveContent] = useState('');
+    const [saving, setSaving] = useState(false);
+
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -229,6 +239,42 @@ const GeneratorPage: React.FC = () => {
             setTimeout(() => setCopied(false), 2000);
         } catch {
             showSnackbar('Failed to copy', 'error');
+        }
+    };
+
+    const openSaveModal = () => {
+        if (!password) return;
+        setSaveTitle('');
+        setSaveContent(`PASSWORD=${password}`);
+        setShowSaveModal(true);
+    };
+
+    const closeSaveModal = () => {
+        if (saving) return;
+        setShowSaveModal(false);
+        setSaveTitle('');
+        setSaveContent('');
+    };
+
+    const handleSaveSecret = async () => {
+        if (!encryptionKey || !saveTitle.trim() || !saveContent.trim()) return;
+
+        setSaving(true);
+        try {
+            const title = saveTitle.trim();
+            const blob = await encryptText(saveContent, encryptionKey);
+            await api.upsertSecret(title, blob);
+            showSnackbar(`"${title}" saved`, 'success');
+            setShowSaveModal(false);
+            setSaveTitle('');
+            setSaveContent('');
+        } catch (err: any) {
+            showSnackbar(
+                err.response?.data?.detail || 'Failed to save secret',
+                'error'
+            );
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -314,6 +360,15 @@ const GeneratorPage: React.FC = () => {
                                     id="btn-copy-password"
                                 >
                                     {copied ? <Check size={16} /> : <Copy size={16} />}
+                                </button>
+                                <button
+                                    onClick={openSaveModal}
+                                    disabled={!password}
+                                    className="p-2 rounded-lg text-slate-600 hover:text-neon-green hover:bg-neon-green/5 transition-all duration-300 disabled:opacity-50"
+                                    title="Save to vault"
+                                    id="btn-save-password"
+                                >
+                                    <Save size={16} />
                                 </button>
                             </div>
                         </div>
@@ -578,6 +633,18 @@ const GeneratorPage: React.FC = () => {
                 <Zap size={16} />
                 Generate Password
             </button>
+
+            {/* Save Secret Modal */}
+            <SecretModal
+                isOpen={showSaveModal}
+                title={saveTitle}
+                content={saveContent}
+                saving={saving}
+                onTitleChange={setSaveTitle}
+                onContentChange={setSaveContent}
+                onSave={handleSaveSecret}
+                onClose={closeSaveModal}
+            />
 
             {/* Snackbar */}
             <Snackbar

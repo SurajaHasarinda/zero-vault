@@ -9,25 +9,18 @@ import {
     Copy,
     Check,
     Loader2,
-    FileText,
     Clock,
     ShieldCheck,
     FolderLock,
-    X,
-    Save,
-    Terminal,
-    Lock,
-    Zap,
-    Database,
-    ChevronRight,
     Pencil,
     ChevronDown,
 } from 'lucide-react';
-import { api, SecretEntry } from '../api';
+import { api } from '../api';
 import { useCryptoKey } from '../context/CryptoContext';
 import { encryptText, decryptText } from '../utils/cryptoUtils';
 import Snackbar, { SnackbarType } from '../components/common/Snackbar';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import SecretModal from '../components/common/SecretModal';
 
 interface DecryptedSecret {
     id: string;
@@ -495,99 +488,17 @@ const DashboardPage: React.FC = () => {
             )}
 
             {/* ─── Add Secret Modal ───────────────────────────────────────── */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                    <div className="glass-heavy rounded-xl border border-[#1e1e1e] w-full max-w-lg shadow-2xl shadow-black/50 animate-fade-in relative overflow-hidden">
-                        {/* Top glow */}
-                        <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-neon-green/30 to-transparent" />
-
-                        <div className="flex items-center justify-between p-5 border-b border-[#1e1e1e]">
-                            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${editingSecret
-                                    ? 'bg-accent-blue/10 border-accent-blue/20'
-                                    : 'bg-neon-green/10 border-neon-green/20'
-                                    }`}>
-                                    {editingSecret
-                                        ? <Pencil size={14} className="text-accent-blue" />
-                                        : <Plus size={14} className="text-neon-green" />
-                                    }
-                                </div>
-                                <span className="font-mono uppercase tracking-wider">
-                                    {editingSecret ? 'Edit Secret' : 'New Secret'}
-                                </span>
-                            </h2>
-                            <button
-                                onClick={closeModal}
-                                className="p-1.5 text-slate-600 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        <div className="p-5 space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
-                                    Title
-                                </label>
-                                <input
-                                    type="text"
-                                    value={editTitle}
-                                    onChange={(e) => setEditTitle(e.target.value)}
-                                    placeholder="e.g., GitHub SSH Key, AWS Credentials"
-                                    className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white px-4 py-2.5 rounded-lg focus:outline-none transition-all placeholder:text-slate-700 text-sm font-mono"
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-semibold text-slate-500 ml-1 uppercase tracking-[0.15em] font-mono">
-                                    Secret Content
-                                </label>
-                                <div className="terminal-block">
-                                    <div className="terminal-header">
-                                        <div className="terminal-dot bg-accent-red/60" />
-                                        <div className="terminal-dot bg-accent-amber/60" />
-                                        <div className="terminal-dot bg-neon-green/60" />
-                                    </div>
-                                    <textarea
-                                        value={editContent}
-                                        onChange={(e) => setEditContent(e.target.value)}
-                                        placeholder={`DB_HOST=localhost\nDB_USER=admin\nDB_PASS=supersecret\nAPI_KEY=sk-abc123...`}
-                                        rows={8}
-                                        className="w-full bg-transparent text-neon-green-glow/80 px-4 py-3 focus:outline-none transition-all placeholder:text-slate-800 font-mono text-sm resize-none custom-scrollbar leading-relaxed"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    onClick={closeModal}
-                                    className="flex-1 px-4 py-2.5 bg-[#111111] hover:bg-[#1a1a1a] text-slate-400 rounded-lg font-semibold transition-colors text-xs font-mono uppercase tracking-wider border border-[#1e1e1e]"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={saving || !editTitle.trim() || !editContent.trim()}
-                                    className="flex-1 px-4 py-2.5 btn-cyber text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider"
-                                >
-                                    {saving ? (
-                                        <>
-                                            <Loader2 size={14} className="animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Zap size={14} />
-                                            {editingSecret ? 'Save Changes' : 'Save Secret'}
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <SecretModal
+                isOpen={showAddModal}
+                title={editTitle}
+                content={editContent}
+                isEditing={!!editingSecret}
+                saving={saving}
+                onTitleChange={setEditTitle}
+                onContentChange={setEditContent}
+                onSave={handleSave}
+                onClose={closeModal}
+            />
 
             {/* ─── Delete Confirmation ────────────────────────────────────── */}
             <ConfirmDialog
