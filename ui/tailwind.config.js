@@ -33,8 +33,8 @@ export default {
         },
       },
       fontFamily: {
-        mono: ['"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono Variable"', '"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
+        sans: ['"JetBrains Mono Variable"', '"JetBrains Mono"', '"Fira Code"', 'Consolas', 'monospace'],
       },
       borderRadius: {
         DEFAULT: '2px',
