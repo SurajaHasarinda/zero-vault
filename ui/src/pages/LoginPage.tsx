@@ -34,7 +34,7 @@ const LoginPage: React.FC = () => {
                 dek = await unwrapDek(encryptedDek, kek);
             } catch {
                 void api.logout();
-                throw new Error('Invalid username or password.');
+                throw new Error('Invalid username or password');
             }
 
             setSession(dek, encryptedDek, username);
@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
             const msg =
                 err.response?.data?.detail ||
                 err.message ||
-                'Authentication failed. Check credentials.';
+                'Sign in failed. Please check your username and password.';
             setError(msg);
         } finally {
             setLoading(false);
@@ -75,9 +75,6 @@ const LoginPage: React.FC = () => {
                     <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">
                         Vault Zero
                     </h1>
-                    <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
-                        Zero-knowledge secret manager.
-                    </p>
                 </div>
 
                 {/* Form Card */}
@@ -133,7 +130,7 @@ const LoginPage: React.FC = () => {
                                         type="text"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
-                                        placeholder="your_username"
+                                        placeholder="Enter username"
                                         className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white pl-11 pr-4 py-3 rounded-lg text-sm font-mono focus:outline-none transition-all placeholder:text-slate-700"
                                         required
                                         minLength={3}
@@ -162,10 +159,6 @@ const LoginPage: React.FC = () => {
                                         autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                                     />
                                 </div>
-                                <p className="text-[10px] text-slate-600 ml-1 font-mono flex items-center gap-1.5 mt-1">
-                                    <Lock size={8} className="text-neon-green/60" />
-                                    Password never sent to server. All encryption happens locally.
-                                </p>
                             </div>
 
                             <button
@@ -177,39 +170,19 @@ const LoginPage: React.FC = () => {
                                     <>
                                         <Loader2 size={18} className="animate-spin" />
                                         <span className="font-mono text-xs uppercase tracking-wider">
-                                            {isRegisterMode ? 'Deriving keys...' : 'Unlocking vault...'}
+                                            {isRegisterMode ? 'Creating account...' : 'Signing in...'}
                                         </span>
                                     </>
                                 ) : (
                                     <>
                                         <Fingerprint size={18} />
                                         <span className="font-mono text-xs uppercase tracking-wider">
-                                            {isRegisterMode ? 'Create Account' : 'Unlock Vault'}
+                                            {isRegisterMode ? 'Create Account' : 'Sign In'}
                                         </span>
                                     </>
                                 )}
                             </button>
                         </form>
-                    </div>
-                </div>
-
-                {/* Security Footer */}
-                <div className="mt-6 text-center">
-                    <div className="flex items-center justify-center gap-3 text-slate-700 text-[10px] font-mono uppercase tracking-wider">
-                        <span className="flex items-center gap-1.5">
-                            <div className="w-1 h-1 rounded-full bg-neon-green/50" />
-                            PBKDF2
-                        </span>
-                        <span>·</span>
-                        <span className="flex items-center gap-1.5">
-                            <div className="w-1 h-1 rounded-full bg-neon-green/50" />
-                            AES-256-GCM
-                        </span>
-                        <span>·</span>
-                        <span className="flex items-center gap-1.5">
-                            <div className="w-1 h-1 rounded-full bg-neon-green/50" />
-                            Zero Knowledge
-                        </span>
                     </div>
                 </div>
             </div>

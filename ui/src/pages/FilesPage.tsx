@@ -243,7 +243,7 @@ const FilesPage: React.FC = () => {
 
         for (const file of pendingFiles) {
             try {
-                setUploadProgress(`Encrypting ${file.name}...`);
+                setUploadProgress(`Preparing ${file.name}...`);
                 const buffer = await file.arrayBuffer();
                 const encryptedData = await encryptBinary(buffer, encryptionKey);
 
@@ -256,7 +256,7 @@ const FilesPage: React.FC = () => {
                     file.type || 'application/octet-stream'
                 );
 
-                showSnackbar(`"${file.name}" encrypted & stored`, 'success');
+                showSnackbar(`"${file.name}" uploaded`, 'success');
             } catch (err: any) {
                 showSnackbar(
                     err.response?.data?.detail || `Failed to upload "${file.name}"`,
@@ -300,9 +300,9 @@ const FilesPage: React.FC = () => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            showSnackbar(`"${file.filename}" decrypted & downloaded`, 'success');
+            showSnackbar(`"${file.filename}" downloaded`, 'success');
         } catch {
-            showSnackbar('Failed to decrypt file. Wrong key or corrupted data.', 'error');
+            showSnackbar('Could not download this file. Please sign in again.', 'error');
         } finally {
             setDownloadingId(null);
         }
@@ -349,10 +349,10 @@ const FilesPage: React.FC = () => {
                         <div className="w-8 h-8 rounded-lg bg-accent-blue/10 flex items-center justify-center border border-accent-blue/20">
                             <HardDrive size={16} className="text-accent-blue" />
                         </div>
-                        Encrypted Files
+                        Files
                     </h1>
                     <p className="text-slate-600 text-xs mt-1.5 font-mono uppercase tracking-wider">
-                        {files.length} file{files.length !== 1 ? 's' : ''} in {existingTitles.length} group{existingTitles.length !== 1 ? 's' : ''} · Zero-knowledge encrypted
+                        {files.length} file{files.length !== 1 ? 's' : ''} in {existingTitles.length} group{existingTitles.length !== 1 ? 's' : ''}
                     </p>
                 </div>
                 <button
@@ -391,7 +391,7 @@ const FilesPage: React.FC = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 size={28} className="animate-spin text-accent-blue mb-3" />
-                    <p className="text-xs text-slate-600 font-mono uppercase tracking-wider">Loading files...</p>
+                    <p className="text-xs text-slate-600 font-mono uppercase tracking-wider">Loading...</p>
                 </div>
             ) : groups.length === 0 && !searchQuery ? (
                 /* Empty state with drop zone */
@@ -412,19 +412,13 @@ const FilesPage: React.FC = () => {
                         <Upload size={28} className={isDragging ? 'text-accent-blue' : 'text-slate-700'} />
                     </div>
                     <h3 className="text-sm font-semibold text-slate-500 mb-1">
-                        {isDragging ? 'Drop files to encrypt' : 'No encrypted files yet'}
+                        {isDragging ? 'Drop files to upload' : 'No files yet'}
                     </h3>
                     <p className="text-xs text-slate-700 font-mono max-w-sm">
                         {isDragging
-                            ? 'Files will be encrypted with AES-256-GCM before upload'
-                            : 'Drag & drop files here, or click to browse. SSH keys, certificates, configs — up to 5MB each.'}
+                            ? 'Release to upload your files'
+                            : 'Drag and drop files here, or click to browse (max 5MB per file)'}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-4">
-                        <Lock size={10} className="text-accent-blue/50" />
-                        <span className="text-[9px] text-accent-blue/60 font-mono uppercase tracking-wider">
-                            Client-side AES-256-GCM Encryption
-                        </span>
-                    </div>
                 </div>
             ) : groups.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -447,7 +441,7 @@ const FilesPage: React.FC = () => {
                             <div className="flex items-center gap-3">
                                 <Upload size={20} className="text-accent-blue" />
                                 <span className="text-sm font-mono text-accent-blue uppercase tracking-wider">
-                                    Drop files to encrypt & upload
+                                    Drop files to upload
                                 </span>
                             </div>
                         </div>
@@ -566,19 +560,9 @@ const FilesPage: React.FC = () => {
 
                                 {/* Expanded File List */}
                                 {isExpanded && (
-                                    <div className="animate-fade-in">
-                                        {/* Group status bar */}
-                                        <div className="flex items-center justify-between px-4 py-2 border-t border-[#1e1e1e] bg-[#0c0c0c]">
-                                            <div className="flex items-center gap-2">
-                                                <ShieldCheck size={12} className="text-accent-blue" />
-                                                <span className="text-[9px] text-accent-blue font-mono uppercase tracking-wider">
-                                                    {group.files.length} encrypted file{group.files.length !== 1 ? 's' : ''}
-                                                </span>
-                                            </div>
-                                        </div>
-
+                                    <div className="animate-fade-in border-t border-[#1e1e1e]">
                                         {/* Individual files */}
-                                        <div className="mx-3 mb-3 mt-1 space-y-1.5">
+                                        <div className="mx-3 mb-3 mt-3 space-y-1.5">
                                             {group.files.map((file) => {
                                                 const isDownloading = downloadingId === file.id;
                                                 const category = getFileCategory(file.mime_type, file.filename);
@@ -620,7 +604,7 @@ const FilesPage: React.FC = () => {
                                                                     onClick={() => handleDownload(file)}
                                                                     disabled={isDownloading}
                                                                     className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all duration-300 text-slate-600 hover:text-accent-blue hover:bg-accent-blue/5 disabled:opacity-50"
-                                                                    title="Decrypt & Download"
+                                                                    title="Download"
                                                                 >
                                                                     {isDownloading ? (
                                                                         <Loader2 size={11} className="animate-spin text-accent-blue" />
@@ -628,7 +612,7 @@ const FilesPage: React.FC = () => {
                                                                         <Download size={11} />
                                                                     )}
                                                                     <span className="hidden sm:inline">
-                                                                        {isDownloading ? 'Decrypting...' : 'Download'}
+                                                                        {isDownloading ? 'Downloading...' : 'Download'}
                                                                     </span>
                                                                 </button>
                                                                 <button
@@ -649,16 +633,6 @@ const FilesPage: React.FC = () => {
                             </div>
                         );
                     })}
-                </div>
-            )}
-
-            {/* File size warning */}
-            {files.length > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-amber/5 border border-accent-amber/10">
-                    <AlertTriangle size={12} className="text-accent-amber flex-shrink-0" />
-                    <span className="text-[9px] text-accent-amber/70 font-mono uppercase tracking-wider">
-                        Max file size: 5MB · Files encrypted with AES-256-GCM before leaving browser
-                    </span>
                 </div>
             )}
 
@@ -750,12 +724,6 @@ const FilesPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Encryption note */}
-                            <p className="text-[9px] text-slate-700 ml-1 font-mono flex items-center gap-1.5">
-                                <Lock size={8} className="text-accent-blue/50" />
-                                Files encrypted with AES-256-GCM before leaving browser
-                            </p>
-
                             {/* Actions */}
                             <div className="flex gap-3 pt-1">
                                 <button
@@ -778,7 +746,7 @@ const FilesPage: React.FC = () => {
                                     ) : (
                                         <>
                                             <Zap size={14} />
-                                            Encrypt & Upload
+                                            Upload
                                         </>
                                     )}
                                 </button>
@@ -791,7 +759,7 @@ const FilesPage: React.FC = () => {
             {/* ─── Delete Confirmation ────────────────────────────────────── */}
             <ConfirmDialog
                 isOpen={!!deleteTarget}
-                title="Delete Encrypted File"
+                title="Delete File"
                 message={`Are you sure you want to permanently delete "${deleteTarget?.filename}" from "${deleteTarget?.title}"? This action cannot be undone.`}
                 confirmText="Delete"
                 variant="danger"

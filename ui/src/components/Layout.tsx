@@ -52,31 +52,12 @@ const Layout = ({ children }: LayoutProps) => {
                         <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
                             Vault Zero
                         </h1>
-                        <p className="text-[9px] text-neon-green/60 uppercase tracking-[0.2em] font-mono font-medium">
-                            Zero-Knowledge
-                        </p>
                     </div>
-                </div>
-            </div>
-
-            {/* Status Indicator */}
-            <div className="px-4 py-3">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-neon-green/5 border border-neon-green/10">
-                    <div className="relative flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-neon-green" />
-                        <div className="absolute w-2 h-2 rounded-full bg-neon-green animate-ping" />
-                    </div>
-                    <span className="text-[10px] text-neon-green/80 uppercase tracking-wider font-mono">
-                        System Active
-                    </span>
                 </div>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-3 py-2 space-y-0.5">
-                <p className="text-[9px] text-slate-600 uppercase tracking-[0.2em] font-mono px-3 py-2">
-                    Navigation
-                </p>
+            <nav className="flex-1 px-3 py-3 space-y-0.5">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.path}
@@ -117,12 +98,6 @@ const Layout = ({ children }: LayoutProps) => {
                         <span className="text-xs font-semibold text-white truncate font-mono">
                             {username}
                         </span>
-                        <div className="flex items-center gap-1">
-                            <Lock size={8} className="text-neon-green" />
-                            <span className="text-[9px] text-neon-green uppercase tracking-wider font-mono">
-                                AES-256 Active
-                            </span>
-                        </div>
                     </div>
                 </div>
                 <button
@@ -181,10 +156,6 @@ const Layout = ({ children }: LayoutProps) => {
                             </div>
                             <span className="font-bold text-white text-base">Vault Zero</span>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <Activity size={12} className="text-neon-green" />
-                        <span className="text-[9px] text-neon-green font-mono uppercase tracking-wider">Secure</span>
                     </div>
                 </header>
 

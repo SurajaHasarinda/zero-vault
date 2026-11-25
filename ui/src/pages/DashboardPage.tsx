@@ -138,7 +138,7 @@ const DashboardPage: React.FC = () => {
             );
             setSelectedId(secret.id);
         } catch {
-            showSnackbar('Failed to decrypt. Wrong key or corrupted data.', 'error');
+            showSnackbar('Could not unlock this secret. Please sign in again.', 'error');
             setSecrets((prev) =>
                 prev.map((s) =>
                     s.id === secret.id ? { ...s, isDecrypting: false } : s
@@ -183,7 +183,7 @@ const DashboardPage: React.FC = () => {
                     )
                 );
             } catch {
-                showSnackbar('Failed to decrypt for editing.', 'error');
+                showSnackbar('Could not open this secret for editing', 'error');
                 return;
             }
         }
@@ -209,8 +209,8 @@ const DashboardPage: React.FC = () => {
             await api.upsertSecret(newTitle, blob);
             showSnackbar(
                 editingSecret
-                    ? `Secret "${newTitle}" updated`
-                    : `Secret "${newTitle}" encrypted & stored`,
+                    ? `"${newTitle}" updated`
+                    : `"${newTitle}" saved`,
                 'success'
             );
             setShowAddModal(false);
@@ -267,7 +267,7 @@ const DashboardPage: React.FC = () => {
                         Your Vault
                     </h1>
                     <p className="text-slate-600 text-xs mt-1.5 font-mono uppercase tracking-wider">
-                        {secrets.length} secret{secrets.length !== 1 ? 's' : ''} stored · End-to-end encrypted
+                        {secrets.length} secret{secrets.length !== 1 ? 's' : ''}
                     </p>
                 </div>
                 <button
@@ -298,7 +298,7 @@ const DashboardPage: React.FC = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 size={28} className="animate-spin text-neon-green mb-3" />
-                    <p className="text-xs text-slate-600 font-mono uppercase tracking-wider">Loading vault...</p>
+                    <p className="text-xs text-slate-600 font-mono uppercase tracking-wider">Loading...</p>
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -311,7 +311,7 @@ const DashboardPage: React.FC = () => {
                     <p className="text-xs text-slate-700 font-mono">
                         {searchQuery
                             ? 'Try a different search term'
-                            : 'Click "Add Secret" to store your first encrypted secret'}
+                            : 'Click "Add Secret" to save your first secret'}
                     </p>
                 </div>
             ) : (
@@ -377,7 +377,7 @@ const DashboardPage: React.FC = () => {
                                                     ? 'text-neon-green bg-neon-green/10 hover:bg-neon-green/20'
                                                     : 'text-slate-600 hover:text-neon-green hover:bg-neon-green/5'
                                                     }`}
-                                                title={isOpen ? 'Collapse' : 'Expand & Decrypt'}
+                                                title={isOpen ? 'Hide' : 'Show'}
                                             >
                                                 <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
                                             </button>
@@ -402,13 +402,7 @@ const DashboardPage: React.FC = () => {
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         {/* Action bar */}
-                                        <div className="flex items-center justify-between px-4 py-2 border-t border-[#1e1e1e] bg-[#0c0c0c]">
-                                            <div className="flex items-center gap-2">
-                                                <ShieldCheck size={12} className="text-neon-green" />
-                                                <span className="text-[9px] text-neon-green font-mono uppercase tracking-wider">
-                                                    Decrypted · In-memory only
-                                                </span>
-                                            </div>
+                                        <div className="flex items-center justify-end px-4 py-2 border-t border-[#1e1e1e] bg-[#0c0c0c]">
                                             <div className="flex items-center gap-1">
                                                 <button
                                                     onClick={() => openEditModal(secret)}
@@ -482,7 +476,7 @@ const DashboardPage: React.FC = () => {
                                                             <div className="terminal-dot bg-accent-amber/60 !w-1.5 !h-1.5" />
                                                             <div className="terminal-dot bg-neon-green/60 !w-1.5 !h-1.5" />
                                                             <span className="ml-2 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
-                                                                {secret.title} — plaintext
+                                                                {secret.title}
                                                             </span>
                                                         </div>
                                                         <pre className="p-4 text-sm text-neon-green-glow/90 font-mono whitespace-pre-wrap break-words leading-relaxed select-text cursor-text">
@@ -554,9 +548,6 @@ const DashboardPage: React.FC = () => {
                                         <div className="terminal-dot bg-accent-red/60" />
                                         <div className="terminal-dot bg-accent-amber/60" />
                                         <div className="terminal-dot bg-neon-green/60" />
-                                        <span className="ml-3 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
-                                            plaintext
-                                        </span>
                                     </div>
                                     <textarea
                                         value={editContent}
@@ -566,10 +557,6 @@ const DashboardPage: React.FC = () => {
                                         className="w-full bg-transparent text-neon-green-glow/80 px-4 py-3 focus:outline-none transition-all placeholder:text-slate-800 font-mono text-sm resize-none custom-scrollbar leading-relaxed"
                                     />
                                 </div>
-                                <p className="text-[9px] text-slate-700 ml-1 font-mono flex items-center gap-1.5 mt-1">
-                                    <Lock size={8} className="text-neon-green/50" />
-                                    Content encrypted with AES-256-GCM before leaving browser
-                                </p>
                             </div>
 
                             <div className="flex gap-3 pt-1">
@@ -587,12 +574,12 @@ const DashboardPage: React.FC = () => {
                                     {saving ? (
                                         <>
                                             <Loader2 size={14} className="animate-spin" />
-                                            Encrypting...
+                                            Saving...
                                         </>
                                     ) : (
                                         <>
                                             <Zap size={14} />
-                                            {editingSecret ? 'Re-encrypt & Save' : 'Encrypt & Save'}
+                                            {editingSecret ? 'Save Changes' : 'Save Secret'}
                                         </>
                                     )}
                                 </button>
