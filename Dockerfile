@@ -1,5 +1,5 @@
 # Multi-stage build for single container deployment
-FROM node:22-alpine AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-builder
 
 WORKDIR /app
 COPY ui/package*.json ./
