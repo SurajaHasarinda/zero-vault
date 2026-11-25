@@ -4,14 +4,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.models import User
 from app.schemas.schemas import (
     EncryptedFileCreateRequest,
     EncryptedFileResponse,
     FileGroupRenameRequest,
     MessageResponse,
 )
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user_id
 from app.services.files_service import (
     get_user_files,
     upsert_file,
@@ -28,10 +27,10 @@ router = APIRouter(prefix="/files", tags=["Encrypted Files"])
     summary="List all encrypted files for the authenticated user",
 )
 def list_files(
-    current_user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    return get_user_files(current_user.id, db)
+    return get_user_files(user_id, db)
 
 
 @router.post(
@@ -42,11 +41,11 @@ def list_files(
 )
 def create_or_update_file(
     payload: EncryptedFileCreateRequest,
-    current_user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     return upsert_file(
-        user_id=current_user.id,
+        user_id=user_id,
         title=payload.title,
         filename=payload.filename,
         encrypted_data=payload.encrypted_data,
@@ -63,10 +62,10 @@ def create_or_update_file(
 )
 def remove_file(
     file_id: UUID,
-    current_user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    delete_file(str(file_id), current_user.id, db)
+    delete_file(str(file_id), user_id, db)
     return MessageResponse(message="File deleted successfully.")
 
 
@@ -77,11 +76,11 @@ def remove_file(
 )
 def rename_group(
     payload: FileGroupRenameRequest,
-    current_user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     count = rename_group_title(
-        user_id=current_user.id,
+        user_id=user_id,
         old_title=payload.old_title,
         new_title=payload.new_title,
         db=db,

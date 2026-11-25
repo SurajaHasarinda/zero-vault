@@ -4,9 +4,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.models import User
 from app.schemas.schemas import SecretCreateRequest, SecretResponse, MessageResponse
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user_id
 from app.services.secrets_service import (
     get_user_secrets,
     upsert_secret,
@@ -22,10 +21,10 @@ router = APIRouter(prefix="/secrets", tags=["Secrets"])
     summary="List all secrets for the authenticated user",
 )
 def list_secrets(
-    current_user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    return get_user_secrets(current_user.id, db)
+    return get_user_secrets(user_id, db)
 
 
 @router.post(
@@ -36,10 +35,10 @@ def list_secrets(
 )
 def create_or_update_secret(
     payload: SecretCreateRequest,
-    current_user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    return upsert_secret(current_user.id, payload.title, payload.encrypted_blob, db)
+    return upsert_secret(user_id, payload.title, payload.encrypted_blob, db)
 
 
 @router.delete(
@@ -49,8 +48,8 @@ def create_or_update_secret(
 )
 def remove_secret(
     secret_id: UUID,
-    current_user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    delete_secret(str(secret_id), current_user.id, db)
+    delete_secret(str(secret_id), user_id, db)
     return MessageResponse(message="Secret deleted successfully.")

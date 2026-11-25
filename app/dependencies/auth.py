@@ -74,10 +74,8 @@ def decode_access_token(token: str) -> dict:
         )
 
 
-def get_current_user(
-    request: Request,
-    db: Session = Depends(get_db),
-) -> User:
+def get_current_user_id(request: Request) -> str:
+    """Verify the session JWT and return user_id without a database round-trip."""
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         raise HTTPException(
@@ -92,7 +90,13 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token payload invalid.",
         )
+    return user_id
 
+
+def get_current_user(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+) -> User:
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(

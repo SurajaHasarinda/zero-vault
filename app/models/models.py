@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Integer, Index
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -39,10 +39,13 @@ class User(Base):
 
 class Secret(Base):
     __tablename__ = "secrets"
+    __table_args__ = (
+        Index("ix_secrets_user_title", "user_id", "title"),
+    )
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     title = Column(String(255), nullable=False)
     encrypted_blob = Column(Text, nullable=False)
@@ -61,10 +64,13 @@ class Secret(Base):
 
 class EncryptedFile(Base):
     __tablename__ = "encrypted_files"
+    __table_args__ = (
+        Index("ix_encrypted_files_user_title_filename", "user_id", "title", "filename"),
+    )
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     title = Column(String(255), nullable=False)  # group name
     filename = Column(String(255), nullable=False)

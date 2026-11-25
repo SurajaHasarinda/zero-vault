@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 async def lifespan(_app: FastAPI):
     try:
         Base.metadata.create_all(bind=engine)
+        for model in (Secret, EncryptedFile):
+            for idx in model.__table__.indexes:
+                idx.create(bind=engine, checkfirst=True)
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
