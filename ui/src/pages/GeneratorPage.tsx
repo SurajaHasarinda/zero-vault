@@ -305,9 +305,9 @@ const GeneratorPage: React.FC = () => {
                     {/* Terminal-style password display */}
                     <div className="terminal-block">
                         <div className="terminal-header !py-2">
-                            <div className="terminal-dot bg-accent-red/60" style={{ width: 6, height: 6 }} />
-                            <div className="terminal-dot bg-accent-amber/60" style={{ width: 6, height: 6 }} />
-                            <div className="terminal-dot bg-neon-green/60" style={{ width: 6, height: 6 }} />
+                            <div className="terminal-dot bg-accent-red/60 !w-1.5 !h-1.5" />
+                            <div className="terminal-dot bg-accent-amber/60 !w-1.5 !h-1.5" />
+                            <div className="terminal-dot bg-neon-green/60 !w-1.5 !h-1.5" />
                             <span className="ml-2 text-[9px] text-slate-700 font-mono uppercase tracking-wider">
                                 generated password
                             </span>

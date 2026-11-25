@@ -7,7 +7,7 @@ import logging
 
 import os
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -54,6 +54,45 @@ if settings.cors_origin_list:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type"],
     )
+
+# ── Security headers ──────────────────────────────────────────────
+MAX_BODY = 16 * 1024 * 1024  # 16 MiB — MAX_FILE_SIZE is 5 MB, base64 ≈ 6.85 MB
+
+CSP_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'none'; "
+        "script-src 'self'; "
+        "style-src 'self'; "
+        "style-src-attr 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "base-uri 'none'; "
+        "form-action 'none'; "
+        "frame-ancestors 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": (
+        "camera=(), microphone=(), geolocation=(), payment=()"
+    ),
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+
+if settings.COOKIE_SECURE:
+    CSP_HEADERS["Strict-Transport-Security"] = (
+        "max-age=63072000; includeSubDomains"
+    )
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    if int(request.headers.get("content-length") or 0) > MAX_BODY:
+        return JSONResponse({"detail": "Payload too large"}, status_code=413)
+    response = await call_next(request)
+    response.headers.update(CSP_HEADERS)
+    return response
 
 from fastapi import APIRouter
 api_router = APIRouter(prefix="/api")
