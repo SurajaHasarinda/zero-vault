@@ -1,7 +1,3 @@
-"""
-Zero-Knowledge Secret Manager — FastAPI Application Entry Point.
-"""
-
 from contextlib import asynccontextmanager
 import logging
 
@@ -21,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Create database tables on startup."""
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database initialized successfully.")
@@ -40,12 +35,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS is only needed when the SPA is served from a different origin than the
-# API (e.g. the Vite dev server). Same-origin deployments need no middleware.
-# Empty CORS_ORIGINS therefore means "same-origin only".
-#
-# Cookie-authenticated requests must carry credentials, which rules out the
-# wildcard origin — CORSMiddleware would refuse to combine them anyway.
+# Only needed for cross-origin dev (e.g. Vite proxy); empty = same-origin only.
 if settings.cors_origin_list:
     app.add_middleware(
         CORSMiddleware,
@@ -55,8 +45,7 @@ if settings.cors_origin_list:
         allow_headers=["Content-Type"],
     )
 
-# ── Security headers ──────────────────────────────────────────────
-MAX_BODY = 16 * 1024 * 1024  # 16 MiB — MAX_FILE_SIZE is 5 MB, base64 ≈ 6.85 MB
+MAX_BODY = 16 * 1024 * 1024  # 16 MiB (5 MB max file ≈ 6.85 MB base64)
 
 CSP_HEADERS = {
     "Content-Security-Policy": (

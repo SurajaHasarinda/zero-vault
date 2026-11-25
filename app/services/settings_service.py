@@ -1,7 +1,3 @@
-"""
-Settings service — business logic for account management.
-"""
-
 import logging
 
 from fastapi import HTTPException, status
@@ -12,7 +8,6 @@ from app.dependencies.auth import hash_login_hash, verify_login_hash
 
 logger = logging.getLogger(__name__)
 
-# ─── Account Management ──────────────────────────────────────────────────────
 
 def change_user_password(
     user: User,
@@ -21,10 +16,6 @@ def change_user_password(
     encrypted_dek: str,
     db: Session,
 ) -> User:
-    """
-    Change the user's login hash (password) and re-wrapped DEK.
-    Requires verifying the current login hash first.
-    """
     if not verify_login_hash(current_login_hash, user.login_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,20 +37,13 @@ def change_username(
     encrypted_dek: str,
     db: Session,
 ) -> User:
-    """
-    Change the user's username.
-
-    The username is the PBKDF2 salt, so the stored login hash and the wrapped
-    DEK must be rewritten together with it. Requires verifying the current
-    login hash first.
-    """
+    """Username is the PBKDF2 salt, so login_hash and encrypted_dek must be rewritten together."""
     if not verify_login_hash(current_login_hash, user.login_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Password is incorrect.",
         )
 
-    # Check if new username is already taken
     existing = db.query(User).filter(User.username == new_username).first()
     if existing and existing.id != user.id:
         raise HTTPException(

@@ -1,8 +1,3 @@
-"""
-Application configuration loaded from environment variables.
-"""
-
-from typing import Optional
 from pydantic_settings import BaseSettings
 
 
@@ -13,9 +8,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_MINUTES: int = 60
 
-    # The session JWT is delivered in an httpOnly cookie. Set this to true
-    # whenever the app is served over HTTPS; browsers silently drop Secure
-    # cookies on plain-http origins other than localhost.
+    # Set True in HTTPS deployments; browsers drop Secure cookies on plain HTTP.
     COOKIE_SECURE: bool = False
 
     CORS_ORIGINS: str = ""

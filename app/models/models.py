@@ -1,8 +1,4 @@
-"""
-SQLAlchemy ORM models for the Zero-Knowledge Secret Manager.
-
-Uses String-based UUIDs for cross-database compatibility (SQLite + PostgreSQL).
-"""
+"""SQLAlchemy ORM models (String UUIDs for SQLite + PostgreSQL compatibility)."""
 
 import uuid
 from datetime import datetime, timezone
@@ -22,8 +18,8 @@ class User(Base):
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     username = Column(String(150), unique=True, nullable=False, index=True)
-    login_hash = Column(String(256), nullable=False)  # bcrypt-hashed login_hash
-    encrypted_dek = Column(Text, nullable=False)  # DEK wrapped under the client KEK
+    login_hash = Column(String(256), nullable=False)
+    encrypted_dek = Column(Text, nullable=False)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -70,7 +66,7 @@ class EncryptedFile(Base):
     user_id = Column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    title = Column(String(255), nullable=False)            # group name, e.g. "SSH Keys"
+    title = Column(String(255), nullable=False)  # group name
     filename = Column(String(255), nullable=False)
     encrypted_data = Column(Text, nullable=False)
     file_size = Column(Integer, nullable=False)

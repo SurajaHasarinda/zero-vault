@@ -38,7 +38,6 @@ interface DecryptedSecret {
     isDecrypting: boolean;
 }
 
-/** Parse plaintext into KEY=VALUE pairs. Returns null if it's not in that format. */
 function parseKeyValuePairs(text: string): { key: string; value: string }[] | null {
     const lines = text.split('\n').filter(l => l.trim().length > 0);
     if (lines.length === 0) return null;
@@ -46,16 +45,15 @@ function parseKeyValuePairs(text: string): { key: string; value: string }[] | nu
     const pairs: { key: string; value: string }[] = [];
     for (const line of lines) {
         const eqIndex = line.indexOf('=');
-        if (eqIndex <= 0) return null; // not KEY=VALUE format
+        if (eqIndex <= 0) return null;
         const key = line.substring(0, eqIndex).trim();
         const value = line.substring(eqIndex + 1).trim();
-        if (!key || /\s/.test(key)) return null; // keys shouldn't have spaces
+        if (!key || /\s/.test(key)) return null;
         pairs.push({ key, value });
     }
     return pairs.length > 0 ? pairs : null;
 }
 
-/** Mask a value showing only first and last char */
 function maskValue(value: string): string {
     if (value.length <= 4) return '•'.repeat(value.length);
     return value[0] + '•'.repeat(Math.min(value.length - 2, 16)) + value[value.length - 1];
@@ -70,17 +68,14 @@ const DashboardPage: React.FC = () => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [revealedFields, setRevealedFields] = useState<Set<string>>(new Set());
 
-    // Add/Edit modal state
     const [showAddModal, setShowAddModal] = useState(false);
     const [editTitle, setEditTitle] = useState('');
     const [editContent, setEditContent] = useState('');
     const [saving, setSaving] = useState(false);
-    const [editingSecret, setEditingSecret] = useState<DecryptedSecret | null>(null); // non-null = edit mode
+    const [editingSecret, setEditingSecret] = useState<DecryptedSecret | null>(null);
 
-    // Delete confirmation
     const [deleteTarget, setDeleteTarget] = useState<DecryptedSecret | null>(null);
 
-    // Snackbar
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -90,8 +85,6 @@ const DashboardPage: React.FC = () => {
     const showSnackbar = (message: string, type: SnackbarType) => {
         setSnackbar({ open: true, message, type });
     };
-
-    // ─── Load secrets ────────────────────────────────────────────────────
 
     const loadSecrets = useCallback(async () => {
         try {
@@ -114,8 +107,6 @@ const DashboardPage: React.FC = () => {
     useEffect(() => {
         loadSecrets();
     }, [loadSecrets]);
-
-    // ─── Decrypt a single secret ─────────────────────────────────────────
 
     const toggleDecrypt = async (secret: DecryptedSecret) => {
         if (!encryptionKey) return;
@@ -156,8 +147,6 @@ const DashboardPage: React.FC = () => {
         }
     };
 
-    // ─── Copy to clipboard ───────────────────────────────────────────────
-
     const copyToClipboard = async (text: string, id: string) => {
         try {
             await navigator.clipboard.writeText(text);
@@ -178,14 +167,11 @@ const DashboardPage: React.FC = () => {
         });
     };
 
-    // ─── Open edit modal ──────────────────────────────────────────────────
-
     const openEditModal = async (secret: DecryptedSecret) => {
         if (!encryptionKey) return;
 
         let plaintext = secret.plaintext;
 
-        // Decrypt first if needed
         if (plaintext === null) {
             try {
                 plaintext = await decryptText(secret.encrypted_blob, encryptionKey);
@@ -208,8 +194,6 @@ const DashboardPage: React.FC = () => {
         setShowAddModal(true);
     };
 
-    // ─── Save secret ─────────────────────────────────────────────────────
-
     const handleSave = async () => {
         if (!encryptionKey || !editTitle.trim() || !editContent.trim()) return;
 
@@ -218,7 +202,6 @@ const DashboardPage: React.FC = () => {
             const blob = await encryptText(editContent, encryptionKey);
             const newTitle = editTitle.trim();
 
-            // If editing and title changed, delete old secret first
             if (editingSecret && editingSecret.title !== newTitle) {
                 await api.deleteSecret(editingSecret.id);
             }
@@ -252,8 +235,6 @@ const DashboardPage: React.FC = () => {
         setEditingSecret(null);
     };
 
-    // ─── Delete secret ───────────────────────────────────────────────────
-
     const handleDelete = async () => {
         if (!deleteTarget) return;
         try {
@@ -268,15 +249,11 @@ const DashboardPage: React.FC = () => {
         }
     };
 
-    // ─── Filter ──────────────────────────────────────────────────────────
-
     const filtered = secrets.filter((s) =>
         s.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const selectedSecret = secrets.find((s) => s.id === selectedId);
-
-    // ─── Render ──────────────────────────────────────────────────────────
 
     return (
         <div className="space-y-6">

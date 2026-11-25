@@ -19,10 +19,6 @@ import {
 } from 'lucide-react';
 import Snackbar, { SnackbarType } from '../components/common/Snackbar';
 
-/* ────────────────────────────────────────────────────────────────────────────
- *  Word list for memorable passphrases
- *  A curated list of short, common, easy-to-visualise English words.
- * ──────────────────────────────────────────────────────────────────────────── */
 const WORDLIST: string[] = [
     'acid', 'acorn', 'acre', 'alpha', 'amber', 'anchor', 'angel', 'anvil',
     'apple', 'arch', 'arena', 'arrow', 'atlas', 'atom', 'badge', 'baker',
@@ -61,9 +57,6 @@ const WORDLIST: string[] = [
     'yacht', 'yield', 'youth', 'zebra', 'zinc', 'zone',
 ];
 
-/* ────────────────────────────────────────────────────────────────────────────
- *  Crypto-secure random helpers
- * ──────────────────────────────────────────────────────────────────────────── */
 function secureRandomInt(max: number): number {
     const array = new Uint32Array(1);
     crypto.getRandomValues(array);
@@ -74,9 +67,6 @@ function secureRandomWord(): string {
     return WORDLIST[secureRandomInt(WORDLIST.length)];
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
- *  Password generators
- * ──────────────────────────────────────────────────────────────────────────── */
 interface PasswordOptions {
     length: number;
     uppercase: boolean;
@@ -154,11 +144,8 @@ function generatePassphrase(opts: PassphraseOptions): string {
     return passphrase;
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
- *  Strength calculator
- * ──────────────────────────────────────────────────────────────────────────── */
 interface StrengthResult {
-    score: number;      // 0-4
+    score: number;
     label: string;
     color: string;
     glowColor: string;
@@ -183,9 +170,6 @@ function calculateStrength(password: string): StrengthResult {
     return { score: 4, label: 'Very Strong', color: '#10b981', glowColor: 'rgba(16,185,129,0.5)', entropy };
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
- *  Component
- * ──────────────────────────────────────────────────────────────────────────── */
 type Mode = 'random' | 'memorable';
 
 const SEPARATORS = ['-', '.', '_', ' ', '~', '+'];
@@ -196,20 +180,17 @@ const GeneratorPage: React.FC = () => {
     const [copied, setCopied] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
 
-    // Random mode options
     const [length, setLength] = useState(20);
     const [uppercase, setUppercase] = useState(true);
     const [lowercase, setLowercase] = useState(true);
     const [numbers, setNumbers] = useState(true);
     const [symbols, setSymbols] = useState(true);
 
-    // Memorable mode options
     const [wordCount, setWordCount] = useState(4);
     const [separator, setSeparator] = useState('-');
     const [capitalize, setCapitalize] = useState(true);
     const [includeNumber, setIncludeNumber] = useState(true);
 
-    // Snackbar
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -225,7 +206,6 @@ const GeneratorPage: React.FC = () => {
         setTimeout(() => setIsSpinning(false), 500);
 
         if (mode === 'random') {
-            // Make sure at least one charset is selected
             if (!uppercase && !lowercase && !numbers && !symbols) {
                 showSnackbar('Select at least one character type', 'warning');
                 return;
@@ -236,7 +216,6 @@ const GeneratorPage: React.FC = () => {
         }
     }, [mode, length, uppercase, lowercase, numbers, symbols, wordCount, separator, capitalize, includeNumber]);
 
-    // Generate on first load and on option change
     useEffect(() => {
         generate();
     }, [generate]);

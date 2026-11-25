@@ -1,29 +1,13 @@
-/**
- * CryptoContext.tsx — React context that holds the vault key in RAM.
- *
- * The Data Encryption Key (DEK), its wrapped form, and the username (which is
- * the PBKDF2 salt) are kept in React state only. Nothing is written to
- * localStorage, sessionStorage, or a readable cookie, so a page reload locks
- * the vault.
- *
- * The session JWT does live in an httpOnly cookie, but JavaScript cannot read
- * it: on boot the provider asks the server to expire it, so a reloaded page
- * never leaves a live server session behind.
- *
- * The vault also locks itself after IDLE_LOCK_MS without user activity. The
- * timer is checked on tab focus as well, because browsers throttle timers in
- * hidden tabs and suspend them while the machine sleeps.
- */
-
+// Holds vault keys in RAM only (no storage); auto-locks after IDLE_LOCK_MS.
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { api } from '../api';
 
 const IDLE_LOCK_MS = 15 * 60 * 1000;
 
 interface CryptoContextValue {
-    encryptionKey: CryptoKey | null;   // the DEK
-    encryptedDek: string | null;       // wrapper for the current password
-    username: string | null;           // PBKDF2 salt for key derivation
+    encryptionKey: CryptoKey | null;
+    encryptedDek: string | null;
+    username: string | null;
     setSession: (dek: CryptoKey, encryptedDek: string, username: string) => void;
     clearKey: () => void;
 }
@@ -55,9 +39,7 @@ export const CryptoProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setUsername(null);
     }, []);
 
-    // Drop any server-side session left over from a previous load. The DEK is
-    // gone after a reload, so keeping the cookie alive would only leave an
-    // unusable session behind.
+    // Expire any leftover session cookie on boot since the DEK is gone after reload.
     useEffect(() => {
         void api.logout();
     }, []);

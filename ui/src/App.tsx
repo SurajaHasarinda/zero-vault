@@ -8,13 +8,7 @@ import SettingsPage from './pages/SettingsPage';
 import GeneratorPage from './pages/GeneratorPage';
 import FilesPage from './pages/FilesPage';
 
-/**
- * ProtectedRoute — redirects to /login when the vault key is missing.
- *
- * The DEK is the only usable proof of an unlocked vault: it lives in memory
- * only, so any reload lands here. A surviving session cookie is useless without
- * it, and CryptoProvider clears that cookie on boot.
- */
+// DEK is kept in memory only; any page reload clears it and redirects here.
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { encryptionKey } = useCryptoKey();
 

@@ -15,14 +15,12 @@ import { deriveKeys, rewrapDek } from '../utils/cryptoUtils';
 import { useCryptoKey } from '../context/CryptoContext';
 
 const SettingsPage: React.FC = () => {
-    // ─── Change Password ─────────────────────────────────────────────
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [pwLoading, setPwLoading] = useState(false);
     const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    // ─── Change Username ─────────────────────────────────────────────
     const [newUsername, setNewUsername] = useState('');
     const [usernamePassword, setUsernamePassword] = useState('');
     const [unLoading, setUnLoading] = useState(false);
@@ -30,7 +28,6 @@ const SettingsPage: React.FC = () => {
 
     const { encryptionKey, encryptedDek, username, setSession } = useCryptoKey();
 
-    // ─── Change Password ─────────────────────────────────────────────
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
         setPwMessage(null);
@@ -53,12 +50,11 @@ const SettingsPage: React.FC = () => {
             const { loginHash: currentLoginHash, kek: oldKek } = await deriveKeys(currentPassword, username);
             const { loginHash: newLoginHash, kek: newKek } = await deriveKeys(newPassword, username);
 
-            // Fails with OperationError when the current password is wrong.
+            // Throws OperationError if current password is wrong.
             const newEncryptedDek = await rewrapDek(encryptedDek, oldKek, newKek);
 
             await api.changePassword(currentLoginHash, newLoginHash, newEncryptedDek);
 
-            // The username (PBKDF2 salt) is unchanged, so only the wrapper moves.
             setSession(encryptionKey, newEncryptedDek, username);
 
             setPwMessage({ type: 'success', text: 'Password changed. Your vault stays unlocked.' });
@@ -75,7 +71,6 @@ const SettingsPage: React.FC = () => {
         }
     };
 
-    // ─── Change Username ─────────────────────────────────────────────
     const handleUsernameChange = async (e: React.FormEvent) => {
         e.preventDefault();
         setUnMessage(null);
@@ -93,8 +88,7 @@ const SettingsPage: React.FC = () => {
         try {
             const trimmed = newUsername.trim();
 
-            // The username is the PBKDF2 salt, so both the old and the new
-            // salt are needed: old to verify, new to rebind the vault wrapper.
+            // Username is the PBKDF2 salt; rebind the DEK wrapper to the new salt.
             const { loginHash: currentLoginHash, kek: oldKek } = await deriveKeys(usernamePassword, username);
             const { loginHash: newLoginHash, kek: newKek } = await deriveKeys(usernamePassword, trimmed);
 
@@ -102,8 +96,7 @@ const SettingsPage: React.FC = () => {
 
             await api.changeUsername(trimmed, currentLoginHash, newLoginHash, newEncryptedDek);
 
-            // The session survives (the JWT identifies the user by id) but the
-            // in-memory salt must follow the new username.
+            // Session JWT is keyed by user id, so update the in-memory salt only.
             setSession(encryptionKey, newEncryptedDek, trimmed);
 
             setUnMessage({ type: 'success', text: 'Username changed successfully. Your vault stays unlocked.' });
@@ -119,7 +112,6 @@ const SettingsPage: React.FC = () => {
         }
     };
 
-    // ─── Message component ───────────────────────────────────────────
     const StatusBanner: React.FC<{ msg: { type: 'success' | 'error'; text: string } | null }> = ({ msg }) => {
         if (!msg) return null;
         return (

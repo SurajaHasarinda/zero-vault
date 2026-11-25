@@ -1,7 +1,3 @@
-"""
-Database engine and session factory.
-"""
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
@@ -13,11 +9,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+
 def get_db():
-    """
-    FastAPI dependency that yields a database session.
-    Automatically closes the session after the request is complete.
-    """
     db = SessionLocal()
     try:
         yield db

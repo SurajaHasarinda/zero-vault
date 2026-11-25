@@ -1,12 +1,3 @@
-/**
- * api.ts — Axios-based API client for the FastAPI backend.
- *
- * The session JWT lives in an httpOnly cookie, so it is never visible to
- * JavaScript here: requests merely carry credentials, and the browser attaches
- * the cookie. `withCredentials` matters only for cross-origin calls (the Vite
- * dev proxy); same-origin requests always include cookies.
- */
-
 import axios, { AxiosInstance } from 'axios';
 
 
@@ -63,16 +54,11 @@ class ApiClient {
         return { encryptedDek: data.encrypted_dek };
     }
 
-    /**
-     * Ask the server to expire the session cookie. Failures are ignored: this
-     * runs on boot and on auto-lock, where the cookie may already be gone or
-     * the network may be down.
-     */
     async logout(): Promise<void> {
         try {
             await this.client.post('/auth/logout');
         } catch {
-            // Nothing to recover — the local key is cleared by the caller.
+            // Best-effort; local key is cleared by caller.
         }
     }
 

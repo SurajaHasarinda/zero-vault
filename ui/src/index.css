@@ -19,7 +19,6 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
 
-/* ─── Scrollbar ───────────────────────────────────────────── */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
@@ -37,7 +36,6 @@ body {
   background: #10b98180;
 }
 
-/* ─── Animations ──────────────────────────────────────────── */
 @keyframes slide-up {
   from {
     transform: translateY(100%);
@@ -188,7 +186,6 @@ body {
   animation: neon-flicker 4s ease-in-out infinite;
 }
 
-/* ─── Glass ────────────────────────────────────────────────── */
 .glass {
   background: rgba(17, 17, 17, 0.7);
   backdrop-filter: blur(24px) saturate(1.2);
@@ -201,7 +198,6 @@ body {
   -webkit-backdrop-filter: blur(40px) saturate(1.4);
 }
 
-/* ─── Cyber Borders ────────────────────────────────────────── */
 .cyber-border {
   border: 1px solid #1e1e1e;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -216,7 +212,6 @@ body {
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.08), inset 0 0 15px rgba(16, 185, 129, 0.03);
 }
 
-/* ─── Terminal Code Block ──────────────────────────────────── */
 .terminal-block {
   background: #0a0a0a;
   border: 1px solid #1e1e1e;
@@ -251,7 +246,6 @@ body {
   border-radius: 50%;
 }
 
-/* ─── Hex Grid Background ──────────────────────────────────── */
 .hex-grid {
   background-image:
     linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
@@ -259,14 +253,12 @@ body {
   background-size: 40px 40px;
 }
 
-/* ─── Focus Styles ─────────────────────────────────────────── */
 input:focus,
 textarea:focus {
   border-color: #10b98160 !important;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1), 0 0 20px rgba(16, 185, 129, 0.05) !important;
 }
 
-/* ─── Button Glow ──────────────────────────────────────────── */
 .btn-cyber {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
@@ -294,13 +286,11 @@ textarea:focus {
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
 }
 
-/* ─── Selection ────────────────────────────────────────────── */
 ::selection {
   background: rgba(16, 185, 129, 0.3);
   color: #fff;
 }
 
-/* ─── Range Input (slider) ─────────────────────────────────── */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -338,7 +328,6 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
-/* ─── Scanline overlay ─────────────────────────────────────── */
 .scanline-overlay::after {
   content: '';
   position: absolute;

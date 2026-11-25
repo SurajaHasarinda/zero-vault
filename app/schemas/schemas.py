@@ -1,7 +1,3 @@
-"""
-Pydantic schemas for request validation and response serialization.
-"""
-
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -39,13 +35,7 @@ class UserLoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    """
-    Login response.
-
-    The JWT itself is not part of the body: it is set as an httpOnly cookie so
-    that no script can read it. Only the wrapped DEK is returned, because the
-    client must unwrap it locally to unlock the vault.
-    """
+    """JWT is set as an httpOnly cookie; only the wrapped DEK is returned in the body."""
 
     encrypted_dek: str
 

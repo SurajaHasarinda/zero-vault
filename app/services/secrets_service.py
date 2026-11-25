@@ -1,7 +1,3 @@
-"""
-Secrets service — business logic for CRUD operations on secrets.
-"""
-
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
@@ -11,9 +7,6 @@ from app.models.models import Secret
 
 
 def get_user_secrets(user_id: str, db: Session) -> list[Secret]:
-    """
-    Retrieve all secrets belonging to a user, ordered by most recently updated.
-    """
     return (
         db.query(Secret)
         .filter(Secret.user_id == user_id)
@@ -28,12 +21,6 @@ def upsert_secret(
     encrypted_blob: str,
     db: Session,
 ) -> Secret:
-    """
-    Create a new secret or update an existing one if a secret with the same
-    ``title`` already exists for this user.
-
-    Returns the created or updated Secret object.
-    """
     existing = (
         db.query(Secret)
         .filter(
@@ -62,12 +49,6 @@ def upsert_secret(
 
 
 def delete_secret(secret_id: str, user_id: str, db: Session) -> None:
-    """
-    Delete a secret by its ID, ensuring it belongs to the given user.
-
-    Raises:
-        HTTPException 404 if the secret is not found or doesn't belong to the user.
-    """
     secret = (
         db.query(Secret)
         .filter(Secret.id == secret_id, Secret.user_id == user_id)

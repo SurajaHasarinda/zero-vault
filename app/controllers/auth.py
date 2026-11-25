@@ -1,8 +1,3 @@
-"""
-Authentication controller — thin route handlers for register, login & logout.
-All business logic lives in app.services.auth_service.
-"""
-
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
@@ -26,14 +21,6 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     summary="Register a new user",
 )
 def register(payload: UserRegisterRequest, db: Session = Depends(get_db)):
-    """
-    Register a new user.
-
-    The client sends a **login_hash** (derived from the master password on the
-    client side).  The server *never* sees the plaintext master password.  The
-    login_hash is then hashed again with bcrypt before being persisted
-    (double-hashing).
-    """
     user = register_user(
         payload.username,
         payload.login_hash,
@@ -53,17 +40,6 @@ def login(
     response: Response,
     db: Session = Depends(get_db),
 ):
-    """
-    Authenticate a user with their **login_hash** and return the stored
-    `encrypted_dek`.
-
-    The signed JWT is delivered as an httpOnly session cookie rather than in the
-    response body, so it is never readable from JavaScript.  The client never
-    sends the plaintext master password — only the client-derived login_hash
-    which is verified against the stored bcrypt-hashed version (double
-    hashing). The `encrypted_dek` is opaque to the server; the client unwraps it
-    with the key derived from that password.
-    """
     token, encrypted_dek = authenticate_user(payload.username, payload.login_hash, db)
     set_session_cookie(response, token)
     return LoginResponse(encrypted_dek=encrypted_dek)
@@ -75,11 +51,6 @@ def login(
     summary="Close the session",
 )
 def logout(response: Response):
-    """
-    Expire the session cookie.
-
-    Deliberately does not require a valid token: a client must always be able to
-    discard a stale or expired cookie.
-    """
+    """Always succeeds so clients can discard stale/expired cookies."""
     clear_session_cookie(response)
     return MessageResponse(message="Logged out.")
