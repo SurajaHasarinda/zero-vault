@@ -40,7 +40,6 @@ def upsert_file(
         existing.mime_type = mime_type
         existing.updated_at = datetime.now(timezone.utc)
         db.commit()
-        db.refresh(existing)
         return existing
 
     enc_file = EncryptedFile(
@@ -53,7 +52,6 @@ def upsert_file(
     )
     db.add(enc_file)
     db.commit()
-    db.refresh(enc_file)
     return enc_file
 
 

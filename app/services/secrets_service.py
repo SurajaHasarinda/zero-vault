@@ -34,7 +34,6 @@ def upsert_secret(
         existing.encrypted_blob = encrypted_blob
         existing.updated_at = datetime.now(timezone.utc)
         db.commit()
-        db.refresh(existing)
         return existing
 
     secret = Secret(
@@ -44,7 +43,6 @@ def upsert_secret(
     )
     db.add(secret)
     db.commit()
-    db.refresh(secret)
     return secret
 
 
